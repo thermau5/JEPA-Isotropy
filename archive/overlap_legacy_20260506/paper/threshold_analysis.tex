@@ -1,0 +1,113 @@
+% Symbolic threshold analysis for the synthetic BM-JEPA experiments.
+% This derivation matches data/synthetic.py.
+
+\paragraph{Generator geometry.}
+Let $r=r_\star$ and let $\{e_i\}_{i=0}^{r-1}$ denote the latent coordinate
+basis.  The revised generator separates target heterogeneity from target
+overlap.  First, it constructs a dictionary of possible target directions
+\[
+    v_0=e_0,\qquad
+    v_i(\alpha)
+    =
+    \sqrt{1-h_i(\alpha)^2}\,e_0+h_i(\alpha)e_i,
+    \qquad i=1,\ldots,r-1,
+\]
+where
+\[
+    h_i(\alpha)=\alpha^{p_i},
+    \qquad
+    p_i\in[0.75,1.65].
+\]
+The direction-dependent exponents avoid making every non-shared singular value a
+trivial linear function of the sweep parameter.  Nevertheless, $\alpha$ still
+has the intended interpretation: small $\alpha$ makes all atoms nearly
+collinear with $e_0$, while $\alpha=1$ recovers the coordinate basis.
+
+\paragraph{Target-stack coverage.}
+Let $q_i$ be the number of target rows assigned to atom $i$ by the base balanced
+assignment.  The overlap parameter does not change the dictionary geometry.
+Instead, it changes the coverage distribution over atoms.  Define
+\[
+    \pi_i(\omega)
+    =
+    \frac{(q_i/K)\exp[-\kappa(\omega)t_i]}
+         {\sum_{\ell=0}^{r-1}(q_\ell/K)\exp[-\kappa(\omega)t_\ell]},
+    \qquad
+    t_i=\frac{i}{r-1},
+\]
+with
+\[
+    \kappa(\omega)=\frac{4\omega^2}{1-\omega}.
+\]
+The per-row scale for atom $i$ is chosen so that the aggregate energy assigned
+to that atom is proportional to $\pi_i(\omega)$.  Thus $\omega=0$ preserves the
+balanced target stack, while larger $\omega$ concentrates coverage on the shared
+low-index atoms.  This is a redundancy/coverage control rather than another
+angular interpolation.
+
+\paragraph{Population spectrum.}
+Ignoring target noise, the stacked target operator is $A\in\mathbb{R}^{K\times r}$.
+Since the context operator has orthonormal columns, the nonzero singular values
+of the population cross-covariance $\Sigma_{YZ}=AC^\top$ are the singular values
+of $A$.  Thus the relevant population eigenvalues are those of
+\[
+    G(\alpha,\omega) := A^\top A .
+\]
+With deterministic strengths $\rho_i>0$ and coverage weights
+$w_i(\omega)=K\pi_i(\omega)\rho_i^2$, the Gram matrix has the arrowhead form
+\[
+    G =
+    w_0 e_0e_0^\top
+    +
+    \sum_{i=1}^{r-1}
+    w_i
+    \left(\sqrt{1-h_i^2}e_0+h_i e_i\right)
+    \left(\sqrt{1-h_i^2}e_0+h_i e_i\right)^\top .
+\]
+Equivalently,
+\[
+    a=w_0+\sum_{i=1}^{r-1}w_i(1-h_i^2),
+    \qquad
+    c_i=w_i h_i\sqrt{1-h_i^2},
+    \qquad
+    d_i=w_i h_i^2.
+\]
+The eigenvalues are roots of the arrowhead secular equation
+\[
+    a-\lambda
+    -
+    \sum_{i=1}^{r-1}\frac{c_i^2}{d_i-\lambda}
+    =0,
+\]
+with the usual interlacing behavior around the diagonal entries $d_i$.
+In the implementation, the strengths use
+\[
+    \rho_i = \eta^{r-1-i},
+\]
+with default $\eta=1.18$ and experiment-specific overrides only when stated in
+the configuration files.
+
+\paragraph{Effective-rank threshold.}
+The rank panels report an effective-rank diagnostic,
+\[
+    \sigma_j > \tau\sigma_1,
+    \qquad \tau=0.05,
+\]
+or equivalently
+\[
+    \lambda_j(G) > \tau^2\lambda_1(G).
+\]
+Therefore effective-rank transitions occur at parameter values satisfying
+\[
+    \lambda_j(G(\alpha,\omega))
+    =
+    \tau^2\lambda_1(G(\alpha,\omega)).
+\]
+
+\paragraph{Heterogeneity and overlap.}
+In the heterogeneity sweep, $\omega=0$, so target coverage is fixed and
+$\alpha$ changes only the angular spread of the dictionary atoms.  In the
+overlap sweep, $\alpha=1$, so the dictionary is already maximally heterogeneous
+and $\omega$ changes only the coverage distribution $\pi_i(\omega)$.  This
+separates the positive mechanism, angular complementarity, from the redundancy
+failure mode, repeated coverage of the same predictive directions.

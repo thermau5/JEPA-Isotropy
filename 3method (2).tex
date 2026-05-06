@@ -1,0 +1,838 @@
+
+%% ========================================
+\subsection{JEPA as Reduced-Rank Regression}
+\label{sec:jepa_rrr}
+%% ========================================
+
+We show that, under the frozen-teacher and linearity (\cref{assumption:frozen_teacher,assumption:linear}), JEPA reduces to a reduced-rank regression problem.
+For $r \le d$, consider the rank-constrained JEPA problem
+\begin{align}
+    W_r^\star
+    \in
+    \arg\min_{W \in \mathbb{R}^{Kd \times d}}
+    \calL_K(W,A)
+    \qquad \text{subject to} \qquad \rank(W) \le r,
+    \label{eq:jepa_rrr_problem}
+\end{align}
+where $\calL_K(W,A)$ is the JEPA loss in \cref{def:jepa_objective}.
+\begin{proposition}[JEPA as reduced-rank regression]
+\label{prop:jepa_rrr}
+Under \cref{assumption:frozen_teacher,assumption:linear}, the optimization
+problem \eqref{eq:jepa_rrr_problem} is exactly the reduced-rank regression
+problem in \cref{def:rrr_problem} with $p=d$, $q=Kd$, predictor $ x \in \R^d$, and response $ Y \in \R^{Kd}$.
+\end{proposition}
+% \begin{proof}
+% From \cref{def:jepa_objective},
+% \begin{align*}
+% \calL_K(W,A)
+% =
+% \frac{1}{K}\,\mathbb E\bigl[\| Y -W x\|^2\bigr].
+% \end{align*}
+% Since the factor $1/K$ does not affect the minimizer, \eqref{eq:jepa_rrr_problem}
+% is equivalent to
+% \begin{align*}
+% W_r^\star \in 
+% \arg \min_{W \in \mathbb R^{Kd \times d}}
+% \mathbb E\bigl[\| Y - W x\|^2\bigr]
+% \qquad
+% \text{subject to}
+% \qquad
+% \rank(W)\le r.
+% \end{align*}
+% This is precisely the reduced-rank regression problem in \cref{def:rrr_problem}.
+% \end{proof}
+
+Let $B_{\mathrm{OLS}} \coloneqq \Sigma_{YX}\Sigma_{XX}^{-1}$ from \eqref{eq:unconstrained_prob}.
+By \cref{lem:rrr_solution}, the closed-form solution of \eqref{eq:jepa_rrr_problem} is $    W_r^\star = B_{\mathrm{OLS}} \Sigma_{XX}^{1/2} V_r V_r^\top \Sigma_{XX}^{-1/2}$, where $V_r \in \mathbb R^{d \times r}$ collect the top-$r$ eigenvalues of $\Sigma_{XX}^{1/2} B_{\mathrm{OLS}}^\top B_{\mathrm{OLS}} \Sigma_{XX}^{1/2}$.
+
+% \begin{corollary}[Closed-form JEPA reduced-rank solution]
+% \label{cor:jepa_rrr_solution}
+% Under the assumptions of \cref{prop:jepa_rrr}, a solution to
+% \eqref{eq:jepa_rrr_problem} is
+% \begin{align*}
+    % W_r^\star
+    % =
+    % B_{\mathrm{OLS}}
+    % \Sigma_{XX}^{1/2}
+    % V_r V_r^\top
+    % \Sigma_{XX}^{-1/2}.
+%     % \label{eq:jepa_rrr_solution}
+% \end{align*}
+% \end{corollary}
+
+
+Below we study when increasing the number of target blocks can enlarge the predictive structure accessible from the context embedding $x$.
+
+%% ========================================
+\subsection{Multi-Target Masking and Rank Growth}
+\label{sec:multi_target}
+%% ========================================
+
+The JEPA predictor in \eqref{eq:jepa_rrr_problem} is subject to two rank bottlenecks: the explicit constraint $r$, and an intrinsic bottleneck induced by the data distribution through $x$. 
+\cref{lem:rank_Wr} makes the latter precise:
+
+\begin{lemma}[Rank of the JEPA solution]
+\label{lem:rank_Wr}
+Let $W_r^\star$ be the solution to \cref{prop:jepa_rrr}. 
+Then
+\begin{align}
+    \rank(W_r^\star)
+    =
+    \min\{r,\,\rank(\Sigma_{YX})\}.
+    \label{eq:rank_Wr_star}
+\end{align}
+\end{lemma}
+\begin{proof}
+See \cref{pf:lem_3.3_rank} for a detailed proof.
+\end{proof}
+
+ 
+\cref{lem:rank_Wr} identifies $\rank(\Sigma_{YX})$ as the intrinsic bottleneck predictive rank:
+adding target blocks enlarges the predictive structure only insofar as it raises
+this rank. 
+% The remainder of this subsection examines when heterogeneity among
+% target blocks is enough to do so.
+To study how $\rank(\Sigma_{YX})$ depends on the choice and number of
+target blocks, we aggregate across blocks. 
+Recall $\Sigma_{Y^{(k)}X}, \Sigma_{YX}$ defined in \cref{sec:background}.
+It is natural to define the predictor-side Gram matrix
+\begin{align}
+    G_K
+    \coloneqq
+    \Sigma_{YX}^\top \Sigma_{YX}
+    =
+    \sum_{k=1}^K
+    \Sigma_{Y^{(k)}X}^\top \Sigma_{Y^{(k)}X}
+    \in \mathbb R^{d \times d}.
+    \label{eq:predictor_side_gram}
+\end{align}
+Each summand $\Sigma_{Y^{(k)}X}^\top \Sigma_{Y^{(k)}X}$ is positive
+semidefinite, so adding a block can only enlarge the range of $G_K$
+(equivalently, shrink its kernel).
+Throughout, we write $\lambda_i(\cdot)$ and $\sigma_i(\cdot)$ for the $i$-th largest eigenvalue and singular value (in decreasing order), respectively, and $\|\cdot\|_\mathrm{op}$ for the operator norm. 
+Since $G_K = \Sigma_{YX}^\top \Sigma_{YX}$, its eigenvalues coincide with squared singular values of $\Sigma_{YX}$; in particular, $\lambda_i(G_K) = \sigma_i(\Sigma_{YX})^2$ for every $i$.
+% , and that $\lambda_1(G_K) = \sigma_1(\Sigma_{YX})^2 = \|\Sigma_{YX}\|_{\mathrm{op}}^2$.
+
+
+
+\begin{definition}[Predictive rank]
+\label{def:predictive_rank}
+For a given number of target blocks $K$, the \emph{predictive rank} is
+\begin{align*}
+    r_\star(K) \coloneqq \rank(\Sigma_{YX}).
+    % \label{eq:predictive_rank}
+\end{align*}
+\end{definition}
+
+Since $\Sigma_{XX}\succ 0$, $G_K = \Sigma_{YX}^\top\Sigma_{YX} \in \mathbb R^{d\times d}$,
+one also has $r_\star(K) = \rank(G_K) \le d$.
+Intuitively, $r_\star(K)$ is the predictive subspace dimension (\cref{def:predictive_subspace}).
+We next study how it depends on $K$.
+\begin{theorem}[Rank growth]
+\label{thm:rank_growth}
+Let $G_K \coloneqq \Sigma_{YX}^\top \Sigma_{YX}$ and
+$r_\star(K) \coloneqq \rank(\Sigma_{YX})$ for $K \ge 1$. Then:
+\begin{enumerate}
+\item\label{thm:rank_growth:monotone} \textbf{Monotonicity.}
+    \begin{align*}
+        r_\star(K+1) \ge r_\star(K).
+    \end{align*}
+\item\label{thm:rank_growth:strict} \textbf{Strict growth under complementarity.} If
+    $\ker(G_K) \not\subseteq \ker(\Sigma_{Y^{(K+1)}X})$, then
+    \begin{align*}
+        r_\star(K+1) > r_\star(K).
+    \end{align*}
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+    See \cref{pf:thm_3.5_rank} for a detailed proof.
+\end{proof}
+
+% Since $r^\star(\cdot)$ is monotone and bounded by $d$, it eventually saturates at some $K^\star$; we denote this saturation value by $r_\star(K)=\rank(G_K)\le d$.
+\begin{corollary}[Saturation]
+\label{cor:saturation}
+There exists $K^\star$ such that $r_\star(K) = r_\star(K^\star) \le d $ for every $K \ge K^\star$.
+\end{corollary}
+% \begin{proof}
+% By \Crefitem{thm:rank_growth}{thm:rank_growth:monotone}, $r_{\star}(\cdot)$ is monotone.
+% Since
+% $G_K\in\mathbb R^{d\times d}$, we have $r_\star(K)=\rank(G_K)\le d$, so $r_\star(K)$ is a nondecreasing integer sequence bounded by $d$, hence eventually constant. 
+% \end{proof}
+\cref{cor:saturation} is trivial from \cref{thm:rank_growth}.
+Besides the predictive rank~\cref{def:predictive_rank}, it is useful to track how far $G_K$ is from being rank-deficient on its range, i.e., its smallest nonzero eigenvalue.
+\begin{definition}[Heterogeneity level]
+\label{def:heterogeneity}
+The heterogeneity level $\lambda_{\mathrm{het}}$ is the smallest nonzero eigenvalue of $G_K$, equivalently $\lambda_{r^\star(K)}(G_K)$. 
+% The heterogeneity level of the family $\{\Sigma_{Y^{(k)}X}\}_{k=1}^{K}$ is $\lambda_{\mathrm{het}} \coloneqq \lambda_{r_\star(K)}(G_K)$,
+% where $\lambda_{r_\star(K)}(G_K)$ denotes the $r_\star(K)$-th largest eigenvalue
+% of $G_K$.
+\end{definition}
+By the identity $G_K = \Sigma_{YX}^\top\Sigma_{YX}$, this is the squared smallest nonzero singular value of $\Sigma_{YX}$
+\begin{align}
+    \sigma_{r_\star(K)}(\Sigma_{YX}) = \sqrt{\lambda_{\mathrm{het}}}.
+    \label{eq:sv_floor}
+\end{align}
+
+% Since $G_K \succeq 0$, its eigenvalues are nonnegative, and since $\rank(G_K)=r_\star(K)$, exactly $r_\star(K)$ of them are nonzero.
+% Therefore, $\lambda_{r_\star(K)}(G_K)$ is precisely the smallest nonzero eigenvalue of $G_K$.
+% By the identity $G_K = \Sigma_{YX}^\top \Sigma_{YX}$, \cref{def:heterogeneity}
+% is equivalent to a singular-value floor:
+% \begin{align}
+%     \sigma_{r_\star(K)}(\Sigma_{YX}) = \sqrt{\lambda_{\mathrm{het}}}.
+%     \label{eq:sv_floor}
+% \end{align}
+
+\begin{remark}[Heterogeneity as complementarity]
+\label{rem:heterogeneity_interpretation}
+Rank increases only if the new block cross-covariance $\Sigma_{Y^{(K+1)}X}$ is nonzero on $\ker(G_K)$. 
+Equivalently, the new block must reveal directions of $X$ invisible to the previously accumulated structure; highly overlapping or redundant target blocks fail this condition. 
+In this sense, heterogeneity means complementarity among blockwise cross-covariances, not merely a larger number of targets.
+\end{remark}
+
+
+
+
+% \begin{remark}[Identifiability and singular values]
+% \label{rem:identifiability}
+% By the identity $G_K = \Sigma_{YX}^\top \Sigma_{YX}$~\eqref{eq:predictor_side_gram},
+% \begin{align}
+%     \lambda_{r_\star(K)}(G_K)
+%     = \sigma_{r_\star(K)}(\Sigma_{YX})^2.
+% \end{align}
+% Hence a larger heterogeneity level $\lambda_{\mathrm{het}}$ yields a larger smallest nonzero singular value of the stacked cross-covariance $\Sigma_{YX}$.
+% \end{remark}
+
+
+% By \eqref{eq:sv_floor}, a larger heterogeneity level
+% $\lambda_{\mathrm{het}}$ yields a larger smallest nonzero singular value of the
+% stacked cross-covariance $\Sigma_{YX}$. 
+% The next proposition shows that this
+% improves finite-sample recovery of
+% its 
+% % predictive subspace, i.e., the top-$r_\star(K)$ right singular subspace of $\Sigma_{YX}$.
+% top-$r_\star(K)$ right singular subspace, which is a subspace of the embedding space $\R^d$.
+
+The next proposition shows that $\lambda_{\mathrm{het}}$ improves how well the top-$r^\star(K)$ right singular subspace of $\Sigma_{YX}$ is identified from finite samples.
+
+\begin{proposition}[Heterogeneity controls predictive-subspace identifiability]
+\label{prop:heterogeneity_identifiability}
+Assume the family $\{\Sigma_{Y^{(k)}X}\}_{k=1}^K$ has heterogeneity level
+$\lambda_{\mathrm{het}} > 0$ (\cref{def:heterogeneity}), and let
+$\widehat{\Sigma}_{YX}$ be the empirical cross-covariance computed from
+$n$ i.i.d. samples under the sub-Gaussian assumptions of
+\cref{lem:concentration}. Let $V_{r_\star(K)}, \widehat{V}_{r_\star(K)}$
+denote the top-$r_\star(K)$ right singular subspaces of $\Sigma_{YX}$
+and $\widehat{\Sigma}_{YX}$ respectively. Then for any $\delta \in (0,1)$,
+with probability at least $1-\delta$,
+\begin{align*}
+    \|\sin\Theta(V_{r_\star(K)}, \widehat{V}_{r_\star(K)})\|_{\mathrm{op}}
+    \le \frac{\epsilon_n}{\sqrt{\lambda_{\mathrm{het}}} - \epsilon_n}, \quad \epsilon_n \coloneqq C \|\Sigma_{YX}\|_{\mathrm{op}} \sqrt{\tfrac{\mathrm{effdim}(\Sigma_{YX}) + \log(1/\delta)}{n}},
+\end{align*}
+whenever $\epsilon_n < \sqrt{\lambda_{\mathrm{het}}}$.
+\end{proposition}
+\begin{proof}
+    See \cref{pf:prop_3.8_het} for a detailed proof.
+\end{proof}
+
+
+
+For sufficiently large $n$ such that
+$\epsilon_n \le \sqrt{\lambda_{\mathrm{het}}}/2$,
+the bound simplifies to $\tilde{O} \left({1}/{\sqrt{n \lambda_{\mathrm{het}}}}\right)$,
+% \begin{align*}
+%     \|\sin\Theta(V_{r_\star(K)}, \widehat{V}_{r_\star(K)})\|_{\mathrm{op}}
+%     \le \frac{2\epsilon_n}{\sqrt{\lambda_{\mathrm{het}}}}
+%     = \tilde{O}\!\left(\frac{1}{\sqrt{n \lambda_{\mathrm{het}}}}\right).
+% \end{align*}
+so stronger heterogeneity (larger $\lambda_{\mathrm{het}}$) tightens the
+$\sin\Theta$ bound and yields better identifiability.
+% Conversely, redundant target blocks shrink $\lambda_{\mathrm{het}}$ and destabilize recovery, consistent with \cref{rem:heterogeneity_interpretation}.
+
+
+%% ========================================
+\subsection{Capacity Limits of the Embedding Bottleneck}
+\label{sec:capacity_limit}
+%% ========================================
+
+% The previous subsection studied how multi-target masking can enlarge the
+% predictive structure accessible from the learned context embedding $x$.
+This subsection studies the architectural bottleneck itself. Since JEPA predicts
+through a $d$-dimensional representation $x = A z_{\mathrm{ctx}}$, its end-to-end
+predictor from the raw context block to the stacked target embedding must factor
+through a rank at most $d$ map. This induces an approximation limit even when
+the raw context contains richer predictive structure.
+For convenience, we denote
+\begin{align*}
+    Z \coloneqq z_{\mathrm{ctx}} \in \mathbb{R}^{D_x},
+    \qquad
+    \Sigma_{ZZ} \coloneqq \mathbb{E}[ZZ^\top],
+    \qquad
+    \Sigma_{YZ} \coloneqq \mathbb{E}[Y Z^\top],
+\end{align*}
+and assume $\Sigma_{ZZ} \succ 0$. 
+Define the unconstrained population linear predictor from raw context to stacked targets by
+% \begin{align}
+    $B^{\mathrm{raw}}_{\mathrm{OLS}}
+    \coloneqq
+    \Sigma_{YZ}\Sigma_{ZZ}^{-1}
+    \in \mathbb{R}^{Kd \times D_x}.$
+    % \label{eq:raw_ols_operator}
+% \end{align}
+The next result formalizes the irreducible approximation error imposed by the
+$d$-dimensional embedding bottleneck.
+
+\begin{proposition}[Capacity lower bound from the embedding bottleneck]
+\label{prop:capacity_lower_bound}
+Let $T_K \coloneqq B^{\mathrm{raw}}_{\mathrm{OLS}} \Sigma_{ZZ}^{1/2}$ and $\sigma_1(T_K) \ge \sigma_2(T_K) \ge \cdots \ge 0$ denote its singular
+values. 
+Then for every $(W, A) \in \mathbb{R}^{Kd \times d} \times \mathbb{R}^{d \times D_x}$,
+\begin{align}
+    \mathbb{E}\!\left[\|Y - W A Z\|_2^2\right]
+    \ge
+    \mathbb{E}\!\left[\|Y - B^{\mathrm{raw}}_{\mathrm{OLS}} Z\|_2^2\right]
+    +
+    \sum_{j>d} \sigma_j(T_K)^2.
+    \label{eq:capacity_lower_bound}
+\end{align}
+\end{proposition}
+\begin{proof}
+See \cref{pf:prop_3.9_cap} for a detailed proof.
+\end{proof}
+% \begin{proof}
+% For any pair $(W,A)$, define the end-to-end map
+% \begin{align*}
+%     B \coloneqq W A \in \mathbb{R}^{Kd \times D_x}.
+% \end{align*}
+% Since $W \in \mathbb{R}^{Kd \times d}$ and $A \in \mathbb{R}^{d \times D_x}$,
+% one has $\rank(B) \le d$. Conversely, every matrix
+% $B \in \mathbb{R}^{Kd \times D_x}$ with $\rank(B) \le d$ admits a factorization
+% $B = W A$ for some such $(W,A)$. Hence
+% \begin{align}
+%     \inf_{W,A}\mathbb{E}\!\left[\|Y - W A Z\|_2^2\right]
+%     =
+%     \inf_{\rank(B)\le d}\mathbb{E}\!\left[\|Y - B Z\|_2^2\right].
+%     \label{eq:factorization_equivalence}
+% \end{align}
+
+% Next, by population least squares,
+% $B^{\mathrm{raw}}_{\mathrm{OLS}} = \Sigma_{YZ}\Sigma_{ZZ}^{-1}$ is the
+% unconstrained minimizer of $\mathbb{E}[\|Y - B Z\|_2^2]$. Therefore, for every
+% $B \in \mathbb{R}^{Kd \times D_x}$,
+% \begin{align*}
+%     \mathbb{E}\!\left[\|Y - B Z\|_2^2\right]
+%     =
+%     \mathbb{E}\!\left[\|Y - B^{\mathrm{raw}}_{\mathrm{OLS}} Z\|_2^2\right]
+%     +
+%     \left\|(B - B^{\mathrm{raw}}_{\mathrm{OLS}})\Sigma_{ZZ}^{1/2}\right\|_F^2.
+%     % \label{eq:raw_pythagorean}
+% \end{align*}
+% Thus
+% \begin{align*}
+%     \inf_{\rank(B)\le d}
+%     \mathbb{E}\!\left[\|Y - B Z\|_2^2\right]
+%     &=
+%     \mathbb{E}\!\left[\|Y - B^{\mathrm{raw}}_{\mathrm{OLS}} Z\|_2^2\right]
+%     +
+%     \inf_{\rank(B)\le d}
+%     \left\|B\Sigma_{ZZ}^{1/2} - T_K\right\|_F^2.
+% \end{align*}
+% Since $\Sigma_{ZZ}^{1/2}$ is invertible, the rank constraint remains
+% $\rank(B\Sigma_{ZZ}^{1/2}) \le d$. 
+% By the Eckart-Young theorem~\citep{eckart1936approximation} for Frobenius-norm low-rank approximation,
+% \begin{align}
+%     \inf_{\rank(B)\le d}
+%     \left\|B\Sigma_{ZZ}^{1/2} - T_K\right\|_F^2
+%     =
+%     \sum_{j>d}\sigma_j(T_K)^2.
+%     \label{eq:frobenius-norm_approximation}
+% \end{align}
+% Combining this with \eqref{eq:factorization_equivalence} yields
+% \begin{align}
+%     \inf_{W,A}\mathbb{E}\!\left[\|Y - W A Z\|_2^2\right]
+%     =
+%     \mathbb{E}\!\left[\|Y - B^{\mathrm{raw}}_{\mathrm{OLS}} Z\|_2^2\right]
+%     +
+%     \sum_{j>d}\sigma_j(T_K)^2.
+% \label{eq:capacity_lower_bound_tight}
+% \end{align}
+% The claimed inequality follows immediately.
+% \end{proof}
+
+\begin{remark}[The capacity term]
+\label{rem:capacity_interpretation}
+The bound $\mathcal{E}_\mathrm{tail}(d) = \sum_{j>d} \sigma_j(T_K)^2$ is
+architecturally irreducible: no choice of $(W,A)$ can recover the
+predictive content beyond the top-$d$ singular directions of $T_K$. The
+spectral profile $\{\sigma_j(T_K)\}_{j>d}$ thus quantifies the unavoidable cost of the embedding bottleneck.
+\end{remark}
+
+\cref{prop:capacity_lower_bound} sharpens the saturation of \cref{sec:multi_target}: the embedding dimension
+$d$ is an architectural ceiling that additional target blocks cannot bypass.
+The next subsection studies the finite-sample room for improvement within this population ceiling.
+
+
+\subsection{Post-Saturation Gains via Eigenvalue Balancing}
+\label{sec:post_saturation_eigen}
+By \cref{cor:saturation}, $r_\star(K)$ eventually saturates at some value at most $d$. 
+% We focus on the regime in which the saturated value reaches the architectural ceiling, namely $r_\star(K)=d$.
+Additional targets cannot enlarge the accessible predictive subspace (\cref{def:predictive_subspace}), but at fixed rank, finite-sample recovery still depends on how that rank is conditioned.
+Below we focus on the regime in which the saturated value reaches the architectural ceiling $r_\star(K)=d$, and identify the governing conditioning quantity.
+Given $T_K = B_{\mathrm{OLS}}^{\mathrm{raw}}\,\Sigma_{ZZ}^{1/2}$ from \cref{prop:capacity_lower_bound} and let $H_K \coloneqq T_K^\top T_K$, define
+\begin{align}
+    \kappa_K^2
+    \coloneqq
+    \frac{\lambda_d(H_K)}{\lambda_1(H_K)}
+    =
+    \bigg( \frac{\sigma_d(T_K)}
+    {\sigma_1(T_K)} \bigg)^2.
+    \label{eq:def_kappa}
+\end{align}
+where $\kappa_K^2$ is scale-invariant and satisfies $0<\kappa_K^2\le 1$.
+
+
+\begin{assumption}[Finite-window post-saturation conditioning]
+\label{ass:post_saturation_relative_geometry}
+There exist constants $K^\star\le K_{\max}$, $\kappa_0>0$, $\gamma>0$, and
+$r_{\mathrm{eff}}>0$ such that for every $K\in\{K^\star,\ldots,K_{\max}\}$,
+\begin{align*}
+    r_\star(K)=d,\qquad \rank(T_K)=d,\qquad \kappa_K^2 \ge \kappa_0^2+\gamma(K-K^\star),\qquad \operatorname{effdim}(T_K)\le r_{\mathrm{eff}}.
+\end{align*}
+\end{assumption}
+
+Let $V_K, \widehat{V}_K \in\mathcal{V}_d$ denote the top-$d$ right singular subspaces of $T_K$ and $\widehat T_K$, respectively.
+To translate conditioning-driven subspace stability into excess risk, we assume a Lipschitz relation between the two. 
+For a predictive subspace $V\in \mathcal{V}_d$, define
+\begin{align}
+\label{eq:per_target_risk}
+    \mathcal R_K(V)
+    \coloneqq
+    \frac{1}{K}
+    \inf_{W,A:\,\operatorname{row}(WA)\subseteq V}
+    \mathbb{E}\!\left[\|Y-WAZ\|^2\right],
+\end{align}
+the optimal per-target risk among predictors using $V$. 
+The factor $1/K$ removes trivial growth in target dimension, so variation
+in $\mathcal R_K$ reflects predictive quality rather than aggregation.
+% This is the normalized counterpart of the $K$-block risk in \cref{prop:capacity_lower_bound}.
+\begin{assumption}[Subspace-Lipschitz excess risk]
+\label{ass:lipschitz_excess_risk}
+Let $\mathcal R_K^\star \coloneqq \mathcal R_K(V_K)$. There exists a constant
+$L>0$ such that for every $K\in\{K^\star,\ldots,K_{\max}\}$,
+\begin{align}
+    \mathcal R_K(\widehat V_K) - \mathcal R_K^\star
+    \le
+    L \, \|\sin\Theta(V_K, \widehat V_K)\|_{\mathrm{op}}.
+\end{align}
+\end{assumption}
+
+
+% \begin{corollary}[Normalized excess-risk bound]
+% % \label{cor:post_saturation_excess_risk_bound}
+% Under
+% \cref{ass:post_saturation_relative_geometry,ass:lipschitz_excess_risk} and the half-gap
+% condition~\eqref{eq:post_saturation_half_gap},
+% for any $K\in\{K^\star,\ldots,K_{\max}\}$ and any $\delta\in(0,1)$, with
+% probability at least $1-\delta$,
+% \begin{align*}
+%     \mathcal R_K(\widehat V_K)-\mathcal R_K^\star
+%     \le
+%     \frac{2LC}
+%     {\sqrt{\kappa_0^2+\gamma(K-K^\star)}}
+%     \sqrt{
+%     \frac{r_{\mathrm{eff}}+\log(1/\delta)}{n}
+%     }.
+% \end{align*}
+% \end{corollary}
+% \begin{proof}
+% The claim follows by combining
+% \cref{cor:post_saturation_relative_rate} with
+% \cref{ass:lipschitz_excess_risk}.
+% \end{proof}
+% Combining \cref{cor:post_saturation_excess_risk_bound} with the population floor from \cref{prop:capacity_lower_bound} bounds $\mathcal{R}_K(\widehat V_K)$ itself.
+
+Based on \cref{ass:post_saturation_relative_geometry,ass:lipschitz_excess_risk}, we obtain a risk decomposition of the per-target risk into a population floor and a finite-sample excess term, where the derivation deferred to \cref{sec:intermediate_subspace_recovery}.
+\begin{proposition}[Post-saturation risk decomposition]
+\label{prop:post_saturation_risk}
+Under \cref{ass:post_saturation_relative_geometry,ass:lipschitz_excess_risk} 
+and the half-gap condition~\eqref{eq:post_saturation_half_gap}, for any 
+$K \in \{K^\star,\dots,K_{\max}\}$ and $\delta \in (0,1)$, with 
+probability at least $1-\delta$,
+\begin{align}
+\label{eq:risk_decomposition}
+\mathcal{R}_K(\widehat V_K) \le
+\underbrace{\tfrac{1}{K}\bigl(\mathbb{E}\!\left[\|Y - B_{\mathrm{OLS}}^{\mathrm{raw}} Z\|^2\right] + \mathcal{E}_{\mathrm{tail}}(d)\bigr)}_{\mathcal{R}_K^\star,\ \text{population rank-}d\text{ risk}}
++ \underbrace{\frac{2LC}{\sqrt{\kappa_0^2 + \gamma(K-K^\star)}}\sqrt{\frac{r_{\mathrm{eff}} + \log(1/\delta)}{n}}}_{\text{excess risk}}.
+\end{align}
+\end{proposition}
+\begin{proof}
+See \cref{pf:prop_3.14_post} for a detailed proof.
+\end{proof}
+
+
+The excess-risk term in~\eqref{eq:risk_decomposition} is governed by two finite-sample effects: shrinkage in $n$ at fixed $K$ (\cref{rem:sample_complexity}), and post-saturation conditioning gains in $K$ at fixed $n$ (\cref{rem:second_saturation}).
+
+
+\begin{remark}[Sample complexity]
+\label{rem:sample_complexity}
+Inverting the excess risk \eqref{eq:post_saturation_excess_risk_bound},
+we obtain $\mathcal{R}_K(\widehat{V}_K) - \mathcal{R}_K^\star \le \varepsilon$
+with probability at least $1-\delta$ requires
+$n = \tilde{\mathcal{O}}\big(L^2\, r_{\mathrm{eff}} / \big(\kappa_0^2+\gamma(K-K^\star)\big)\,\varepsilon^{-2}\big)$
+samples.
+The rate is parametric in $\varepsilon$;
+the only lever on the prefactor is the post-saturation conditioning
+$\kappa_0^2+\gamma(K-K^\star)$ of the whitened end-to-end predictor $T_K$, deferred to \cref{sec:predictive_isotropy}.
+\end{remark}
+
+
+\begin{remark}[Second saturation]
+\label{rem:second_saturation}
+\cref{cor:saturation} establishes a population saturation of $r_\star(K)$. 
+Even when this saturation occurs at the architectural ceiling $r_\star = d$, \cref{prop:post_saturation_risk} establishes a second, finite-sample saturation: recovery continues to improve as new blocks balance the eigenvalue-conditioning of $H_K$, until $\kappa_K^2$ stops improving, with absolute ceiling $1$.
+\end{remark}
+
+\subsection{Risk Reduction in Multi-Target JEPA}
+\label{sec:two_stage_risk_reduction}
+
+The previous subsections identify two distinct mechanisms by which additional target blocks improve JEPA.  
+\cref{thm:rank_growth,prop:heterogeneity_identifiability} identify the pre-saturation lever: heterogeneity of $\{\Sigma_{Y^{(k)}X}\}_{k=1}^K$ controls both the population predictive rank and its finite-sample identifiability.
+\cref{prop:post_saturation_risk} identifies the post-saturation lever: once $r_\star(K)=d$, additional targets improve recovery only by balancing the spectrum of $T_K\coloneqq B_{\mathrm{OLS}}^{\mathrm{raw}}\Sigma_{ZZ}^{1/2}$.
+Let $V_{K,r},\widehat V_{K,r}\in\mathcal V_r$ denote the top-$r$ right singular subspaces of $T_K$ and $\widehat T_K$, respectively.
+The next result unifies both into a single risk.
+\begin{proposition}[Unified finite-sample risk decomposition]
+\label{prop:unified_risk_decomposition}
+Fix $K$ and $r\le d$. 
+Let $\Delta_{K,r}\coloneqq \sigma_r(T_K)-\sigma_{r+1}(T_K)$, with the convention $\sigma_{r+1}(T_K)=0$ when $r=\rank(T_K)$, and let $\epsilon_n(T_K)\coloneqq C\|T_K\|_{\mathrm{op}} \sqrt{(\operatorname{effdim}(T_K)+\log(1/\delta))/n}$. 
+Assume $\epsilon_n(T_K)<\Delta_{K,r}$, and suppose the event
+\begin{align*}
+    \mathcal E
+    \coloneqq
+    \left\{
+    \|\widehat T_K-T_K\|_{\mathrm{op}}\le \epsilon_n(T_K)
+    \right\}
+\end{align*}
+holds with probability at least $1-\delta$. 
+Then, under rank-$r$ version of \cref{ass:lipschitz_excess_risk}, on the event $\mathcal E$,
+\begin{align}
+\label{eq:unified_risk_bound}
+    \mathcal R_K(\widehat V_{K,r})
+    \le
+    \underbrace{
+    \frac{1}{K}\left( \mathbb E\!\left[\|Y-B_{\mathrm{OLS}}^{\mathrm{raw}}Z\|^2\right] +\sum_{j>r}\sigma_j(T_K)^2\right)
+    }_{\mathcal R_K^\star(r),\ \text{population rank-}r\text{ risk} }
+    +
+    \underbrace{
+    L\frac{\epsilon_n(T_K)}
+    {\Delta_{K,r}-\epsilon_n(T_K)}
+    }_{\text{excess-risk bound}} .
+\end{align}
+\end{proposition}
+\begin{proof}
+See \cref{pf:cor_3.20_finite} for a detailed proof.
+\end{proof}
+
+\begin{remark}[Risk-reduction levers]
+\label{rem:two_stage_mechanism}
+The bound~\eqref{eq:unified_risk_bound} isolates two controllable levers given fixed targets and context.
+\emph{Capacity}: the population rank-$r$ floor $\frac{1}{K}\sum_{j>r}\sigma_j(T_K)^2$ vanishes once $r\ge r_\star(K)$, and is bottlenecked by the architectural ceiling $r=d$; the residual tail $\frac{1}{K}\sum_{j>d}\sigma_j(T_K)^2$ persists whenever $d<r_\star(K)$.
+\emph{Conditioning}: the finite-sample term shrinks as the retained spectrum of $T_K$ becomes more balanced, monitored by $\kappa_K^2=\lambda_d(H_K)/\lambda_1(H_K)$.
+The remaining task-predictability floor $\tfrac{1}{K}\E\|Y-B^{\mathrm{raw}}_{\mathrm{OLS}}Z\|^2$ is irreducible and tracked by $r_\star(K)$ (\cref{def:predictive_rank}).
+\end{remark}
+% \begin{remark}[Finite-risk improvement]
+% \label{rem:two_stage_mechanism}
+% The bound~\eqref{eq:unified_risk_bound} decomposes the risk of the learned rank-$r$ predictor, with $r\le d$, into three distinct terms.
+% The first term is determined by the predictability of the task itself. 
+% It is irreducible once the targets and context are given, and can be monitored by the predictive rank $r_\star(K)$ (\cref{def:predictive_rank}) or partially by heterogeneity level (\cref{def:heterogeneity}).
+% The second term is the population rank-$r$ floor.
+% It is capacity-controlled by architecture at most $r=d$. 
+% Thus, if $d\ge r_\star(K)$, choosing $r=r_\star(K)$ removes this truncation floor. 
+% If $d<r_\star(K)$, even the largest choice $r=d$ leaves the bottleneck tail $\frac{1}{K}\sum_{j>d}\sigma_j(T_K)^2$. 
+% The third term is the finite-sample recovery error. This term is controlled by the eigenstructure of $T_K$: a larger retained gap and a better balanced spectrum.
+% It can be monitored by $\kappa_K^2=\lambda_d(H_K)/\lambda_1(H_K)$ for $H_K=T_K^\top T_K$.
+% \end{remark}
+
+Thus, given the context and targets, the two controllable levers are capacity and conditioning.
+Increasing the bottleneck $d$ reduces the population truncation term until $d= r_\star(K)$. 
+Additionally, better eigenvalue-conditioning of whitened end-to-end predictor $T_K$, reduces the excess risk bound.
+
+
+
+
+
+\subsection{Predictive Isotropy and Regularization}
+\label{sec:predictive_isotropy}
+
+
+Building upon \cref{prop:unified_risk_decomposition,rem:two_stage_mechanism}, we now show that the eigenvalue-balancing condition of \cref{prop:post_saturation_risk} corresponds precisely to isotropic covariance of the end-to-end prediction on its rank-$d$ range.
+Furthermore, there exists a gauge-invariant factorization to select a JEPA predictor-encoder pair enforcing isotropic-Gaussian embedding (\cref{subsubsec:gauge_factorization}).
+Recall the stacked context $Z\in\mathbb R^{D_x}$ from \cref{sec:capacity_limit}, the 
+linear context encoder $A$ from \cref{assumption:linear}, and the whitened end-to-end predictor $T_K$ with $H_K\coloneqq T_K^\top T_K$ from \cref{prop:capacity_lower_bound}. 
+
+The object of interest is the end-to-end prediction $P_K \coloneqq T_K \widetilde Z$, i.e., $P_K = B_{\mathrm{OLS}}^{\mathrm{raw}} Z$ written in whitened coordinates.
+The rank-$d$ JEPA end-to-end prediction $WAZ$ approximates $P_K$ under the embedding bottleneck~\eqref{eq:capacity_lower_bound}. 
+Whereas LeJEPA's SIGReg regularizes the law of the embedding $AZ$ toward an isotropic Gaussian prior \citep{balestriero2025lejepa}, we target the prediction-aware analogue on $P_K$.
+We show that the second-moment quantity of this connection is already a sharp spectral condition on $H_K$.
+\begin{lemma}[Predictive isotropy]
+\label{lem:predictive_isotropy}
+Let $H_K=T_K^\top T_K$. Assuming $\Sigma_{ZZ}\succ 0$, $\mathbb E[\widetilde Z]=0$, and $\operatorname{rank}(T_K)=d$, the end-to-end prediction $P_K=T_K\widetilde Z$ has isotropic covariance on its rank-$d$ predictive range if and only if
+\begin{align}
+\label{eq:pred_cov_isotropy}
+\lambda_1(H_K)=\lambda_2(H_K)=\cdots=\lambda_d(H_K).
+\end{align}
+\end{lemma}
+\begin{proof}
+    See \cref{pf:lem_3.22_pred} for a detailed proof.
+\end{proof}
+
+
+We now show predictive isotropy (\cref{lem:predictive_isotropy}) is the unique minimizer of the excess-risk bound.
+
+
+\begin{theorem}[Predictive isotropy minimizes the excess-risk bound]
+\label{thm:predictive_isotropy_opt}
+Fix $\tau>0$ and consider rank-$d$ operators $T_K$ satisfying
+$\operatorname{tr}(H_K)=\|T_K\|_F^2=\tau.$
+Among all such operators, the isotropic spectrum
+$\lambda_1(H_K)=\cdots=\lambda_d(H_K)=\tau/d$ minimizes the excess-risk bound in (\cref{prop:unified_risk_decomposition}):
+\end{theorem}
+\begin{proof}
+See \cref{pf:thm_3.23_pred} for a detailed proof.
+\end{proof}
+
+
+
+% \begin{remark}[Majorization principle]
+% \label{rem:majorization_principle}
+% \cref{thm:predictive_isotropy_opt} is the recovery-bound instance of a broader majorization principle: 
+% at fixed signal energy $\operatorname{tr}(H_K) = \tau$, the flat spectrum $(\tau/d, \ldots, \tau/d)$ is the unique majorization-minimum among positive rank-$d$ spectra with total mass $\tau$ \citep{roberts1974convex,marshall1979inequalities}. 
+% The same principle maximizes every Schur-concave functional of the spectrum at the flat spectrum; in particular, 
+% % the intrinsic Gaussian entropy $h_{\mathrm{range}}(P_K) = \tfrac{d}{2}\log(2\pi e) + \tfrac{1}{2}\sum_{i=1}^d \log \lambda_i(H_K)$ is maximized there, by the arithmetic-geometric mean inequality.
+% the Gaussian-entropy functional $\tfrac{d}{2}\log(2\pi e) + \tfrac{1}{2}\sum_{i=1}^d \log \lambda_i(H_K)$ is maximized there, by the arithmetic-geometric mean (AM-GM) inequality.
+% The finite-sample condition $\kappa_K^2 \to 1$ is then the empirical manifestation of uniform predictive-energy allocation across the rank-$d$ range.
+% \end{remark}
+
+
+The recovery-bound optimum in \cref{thm:predictive_isotropy_opt} is an instance of a broader principle, see \cref{par:majorization_principle}.
+
+% \begin{remark}[Majorization principle]
+% \label{rem:majorization_principle}
+% \cref{thm:predictive_isotropy_opt} is the recovery-bound instance of a broader majorization principle: 
+% at fixed signal energy $\operatorname{tr}(H_K) = \tau$, the flat spectrum $(\tau/d, \ldots, \tau/d)$ is the unique majorization-minimum among positive rank-$d$ spectra with total mass $\tau$ \citep{roberts1974convex,marshall1979inequalities}. 
+% Equivalently, it maximizes the log-determinant term
+% $\frac{1}{2}\sum_{i=1}^d \log \lambda_i(H_K)$, i.e., the covariance-spectrum part of the Gaussian entropy, by the arithmetic-geometric mean (AM-GM) inequality.
+% The finite-sample condition $\kappa_K^2 \to 1$ is then the empirical manifestation of uniform predictive-energy allocation across the rank-$d$ range.
+% \end{remark}
+
+\subsubsection{Predictive isotropy subsumes encoder isotropy.}
+\label{subsubsec:gauge_factorization}
+\cref{lem:predictive_isotropy} admits a distributional reading that places the present subsection one step further down the JEPA pipeline than LeJEPA's SIGReg. 
+Recall that for a measure $\mu$ and a map $f$, the pushforward $f_\#\mu$ denotes the law of $f(X)$ when $X\sim\mu$. 
+SIGReg regularizes the embedding pushforward $\mathcal L(AZ)=A_\#\mathcal L(Z)$ toward an isotropic Gaussian prior \citep{balestriero2025lejepa}; the prediction-aware analogue is the end-to-end predictive pushforward
+\begin{align}
+    \mathcal L(P_K)=(T_K)_\#\mathcal L(\widetilde Z).
+    \label{eq:predictive_pushforward}
+\end{align}
+% \red{
+% For ease of analysis, we also assume a Gaussian context.
+% \begin{align}
+% \label{ass:gaussian_context}
+%     Z \sim \mathcal N(0,\Sigma_{ZZ}), \quad \Sigma_{ZZ}\succ 0.
+% \end{align}
+% so that the whitened context $\widetilde{Z} \coloneqq \Sigma_{ZZ}^{-1/2}Z \sim N(0,I_{D_x})$.
+% }
+
+\begin{remark}[Relation to encoder isotropic regularization]
+\label{rem:relation_to_sigreg}
+Isotropy of the predictive pushforward $\mathcal L(P_K)$~\eqref{eq:predictive_pushforward} on its rank-$d$ range is exactly the eigenvalue-balancing condition of $H_K=T_K^\top T_K$ of \cref{lem:predictive_isotropy}, now lifted from covariance to the full law. 
+The relation to SIGReg is sharpened in the regularization paragraph below.
+\end{remark}
+
+% \blue{
+% Next we show that, at the SVD-aligned factorization, predictive isotropy coexists with encoder isotropy automatically to form a joint fixed point at an encoder-predictor choice in the JEPA pipeline.
+% \begin{proposition}[SVD-aligned optimum induces isotropic Gaussian embedding]
+% \label{prop:isotropic_factorization_view}
+% Under the SVD of $T_K=U_K S_K V_K^\top$ and Gaussian context ${Z}$ \eqref{ass:gaussian_context}, the population OLS predictor factors as $B_{\mathrm{OLS}}^{\mathrm{raw}} = U_K S_K V_K^\top \Sigma_{ZZ}^{-1/2}$, so the population-optimal encoder-predictor choice:
+% \begin{align*}
+% \text{encoder: }\Lambda_K = V_K^\top \Sigma_{ZZ}^{-1/2}, \qquad \text{predictor: } W_K = U_K S_K.
+% % \label{eq:enc_pred_choice}
+% \end{align*}
+% induce an embedding satisfying $\Lambda_K Z = V_K^\top \widetilde Z \sim \mathcal N(0, I_d)$. 
+% \end{proposition}
+% \begin{remark}[Predictive isotropy as a joint fixed point]
+% \label{prop:subsume_enc_iso}
+% Predictive isotropy $\lambda_1(H_K)=\cdots=\lambda_d(H_K)$, equivalently $S_K^2 \propto I_d$ is the additional condition that makes $W_K = \sqrt{c}\, U_K$ a scaled partial isometry. 
+% Under the SVD-aligned population-optimal encoder-predictor choice (\cref{prop:isotropic_factorization_view}), predictive isotropy coexists with encoder isotropy automatically.
+% \end{remark}
+% }
+
+
+Within \cref{lem:predictive_isotropy}'s condition, the encoder-predictor factorization remains a structural choice. 
+We specify one that bridges the predictive isotropy with the embedding isotropy of canonical JEPA paradigms~\citep{balestriero2025lejepa}.
+Recall the SVD of the whitened end-to-end predictor, $T_K = U_K S_K V_K^\top$, and let $V_K^\top \widetilde Z \in \R^d$ be the \emph{SVD coordinate} of the whitened context.
+
+\begin{lemma}[Gauge invariance of the rank-$d$ optimum]
+\label{lem:gauge_invariance}
+Let a gauge $G : \mathbb{R}^d \to \mathbb{R}^d$ be any invertible map. 
+Define a encoder-predictor factorization $(\Lambda_G, F_G)$
+\begin{align*}
+\Lambda_G \coloneqq G \circ V_K^\top \Sigma_{ZZ}^{-1/2}, \qquad
+F_G \coloneqq U_K S_K \circ G^{-1}.
+\end{align*}
+Then $F_G \circ \Lambda_G$ realizes the population rank-$d$ end-to-end prediction $P_K$ for every choice of $G$.
+\end{lemma}
+
+% \cref{lem:gauge_invariance} reduces the choice of encoder-predictor pair to the choice of gauge,
+% \blue{while predictive isotropy is gauge-invariant.}
+% This admits isotropic embedding without assuming context distribution.
+
+By \cref{lem:gauge_invariance}, predictive isotropy $H_K = \alpha I_d$ is gauge-invariant, so it constrains the end-to-end map $T_K$ without committing to any embedding distribution.
+The gauge $G$ is therefore free to be chosen for downstream purposes. 
+In particular, it can be selected to realize either of the two canonical encoder-side regularization paradigms in JEPA: 
+covariance isotropy (whitening~\citep{ermolov2021whitening} or VICReg-style~\citep{bardes2021vicreg}) or Gaussian isotropy (LeJEPA~\citep{balestriero2025lejepa}, SIGReg-style).
+
+
+
+
+\begin{theorem}[Subsumes covariance isotropy]
+\label{thm:subsumes_cov_isotropy}
+For any orthogonal gauge $G \in \mathbb{R}^{d \times d}$,
+the encoder-predictor factorization $(\Lambda_G, F_G)$ from
+\cref{lem:gauge_invariance} induces an isotropic encoder covariance:
+\begin{align*}
+    \mathrm{Cov}(\Lambda_G(Z)) = I_d.
+\end{align*}
+\end{theorem}
+\begin{proof}
+See \cref{pf:thm_3.27_cov} for a detailed proof.
+\end{proof}
+
+
+
+
+
+
+
+
+\cref{thm:subsumes_cov_isotropy} realizes covariance isotropy with a linear gauge.
+We next show that a nonlinear gauge can realize the strictly stronger property of isotropic-Gaussian embedding under a mild assumption.
+
+\begin{theorem}[Subsumes Gaussian isotropy]
+\label{thm:subsumes_gaussian_isotropy}
+Assume $V_K^\top \widetilde Z$ has absolutely continuous law on $\mathbb{R}^d$. 
+Then there exists an invertible gauge $G^\star: \mathbb{R}^d \to \mathbb{R}^d$ such that the encoder-predictor factorization $(\Lambda_{G^\star}, F_{G^\star})$ from \cref{lem:gauge_invariance} induces an isotropic Gaussian embedding:
+\begin{align*}
+\Lambda_{G^\star}(Z) \;\sim\; \mathcal{N}(0, I_d).
+\end{align*}
+\end{theorem}
+\begin{proof}[Proof Sketch]
+Existence of $G^\star$ follows from Brenier's theorem~\citep{villani2009optimal}, since the law of $V_K^\top \widetilde Z$ admits a density on $\mathbb{R}^d$ by hypothesis and $\mathcal{N}(0, I_d)$ admits a density on $\mathbb{R}^d$. The encoder-predictor pair $(\Lambda_{G^\star}, F_{G^\star})$ then satisfies the conclusion by construction (\cref{lem:gauge_invariance}).
+\end{proof}
+
+
+% Under the Gaussian context distribution, \cref{thm:subsumes_gaussian_isotropy} admits an unique gauge $G^\star = I$.
+\begin{corollary}[Linear-Gaussian special case]
+\label{cor:linear_gauss}
+If the context follow a Gaussian distribution $Z \sim \mathcal{N}(0, \Sigma_{ZZ})$, the encoder-predictor factorization reduces to the linear pair
+\begin{align*}
+\Lambda_I = V_K^\top \Sigma_{ZZ}^{-1/2}, \qquad F_I = U_K S_K.
+\end{align*}
+\end{corollary}
+\begin{proof}
+The whitened context $\widetilde Z = \Sigma_{ZZ}^{-1/2} Z \sim \mathcal{N}(0, I_{D_x})$ under Gaussian context, and the rows of $V_K^\top$ are orthonormal, so $\Lambda_I Z = V_K^\top \widetilde Z \sim \mathcal{N}(0, I_d)$. Hence $G^\star = I$ realizes \cref{thm:subsumes_gaussian_isotropy}, and the encoder-predictor factorization specializes to $(\Lambda_I, F_I)$.
+\end{proof}
+
+
+Subsumption in \cref{thm:subsumes_cov_isotropy,thm:subsumes_gaussian_isotropy} means the converse fails. 
+As encoder isotropy alone does not imply predictive isotropy, since it is compatible with arbitrary predictor conditioning $\kappa^2_K \in (0,1]$.
+Predictive isotropy is therefore strictly stronger, controlling the predictive spectrum that encoder-only regularization cannot reach.
+Moreover, by \cref{lem:gauge_invariance}, every choice of $G$ realizes the same end-to-end prediction $P_K = T_K \widetilde{Z}$ and hence the same optimality condition as \cref{thm:predictive_isotropy_opt}, so selecting a gauge in \cref{thm:subsumes_cov_isotropy,thm:subsumes_gaussian_isotropy} costs nothing against the excess-risk bound.
+
+% Below we show they share the same excess-risk bound in \cref{prop:unified_risk_decomposition}.
+% \begin{remark}[Gauge-invariant excess-risk bound]
+% \label{rem:gauge_blind}
+% By \cref{lem:gauge_invariance}, every choice of $G$ realizes the same end-to-end prediction $P_K = T_K \widetilde{Z}$, and hence the same optimality condition as \cref{thm:predictive_isotropy_opt}. 
+% So selecting a gauge in \cref{thm:subsumes_cov_isotropy,thm:subsumes_gaussian_isotropy} costs nothing against the excess-risk bound.
+% \end{remark}
+
+
+
+
+
+
+
+% This motivates regularizing the predictor on $H_K$ that controls the excess-risk bound in \cref{prop:unified_risk_decomposition}. 
+% By \cref{thm:subsumes_cov_isotropy} it induces encoder covariance isotropy unconditionally, and under \cref{thm:subsumes_gaussian_isotropy} the embedding law $\mathcal L(\Lambda_K Z)$ becomes isotropic Gaussian.
+
+We now turn this principle into a regularizer.
+The excess-risk bound in \cref{prop:unified_risk_decomposition}
+motivates isotropy of the gauge-free predictive object $H_K$.
+The subsumption results in
+\cref{thm:subsumes_cov_isotropy,thm:subsumes_gaussian_isotropy} further show that, under such regularization, encoder-side isotropy need not be imposed separately, nor must a gauge in \cref{lem:gauge_invariance} be chosen manually.
+
+
+
+\subsubsection{Maximum-entropy regularization induces isotropic-Gaussian embedding.}
+\label{subsubsec:max_entropy_reg}
+The excess-risk bound prescribes only the spectral condition~\eqref{eq:pred_cov_isotropy} on $H_K$, equivalently covariance isotropy of $P_K$ on its rank-$d$ predictive range.
+This places candidate regularizers on a two-axis frontier: \emph{fidelity}, whether $\mathcal R = 0$ implies~\eqref{eq:pred_cov_isotropy}, and \emph{commitment}, how much distributional structure $\mathcal R = 0$ enforces beyond it.
+The least-committing faithful choice is therefore the maximum-entropy law among distributions satisfying predictive isotropy.
+At trace $\tau$, \cref{lem:trace_constrained_max_entropy} shows that this law is uniquely $\mathcal N(0,\tfrac{\tau}{d}I_d)$ on the intrinsic predictive range.
+
+
+Therefore, we propose a maximum-entropy regularizer for the intrinsic
+predicted output
+$
+    \widehat P_K^{\mathrm{int}}
+    \coloneqq
+    \widehat U_K^\top \widehat W\widehat A Z
+    \in\mathbb R^d
+$,
+where $\widehat U_K\in\mathbb R^{Kd\times d}$ spans the learned rank-$d$
+predictive range.
+By the Cram\'er--Wold theorem~\citep{cramer1936some}, in its hyperspherical
+form~\citep[Lemma~3]{balestriero2025lejepa}, the target law
+$\widehat P_K^{\mathrm{int}}\sim\mathcal N(0,I_d)$ is equivalent to
+$u^\top\widehat P_K^{\mathrm{int}}\sim\mathcal N(0,1)$ for every
+$u\in\mathbb S^{d-1}$. We approximate this all-direction condition by
+sampling $|\mathbb A|$ random unit vectors
+$\mathbb A\subset\mathbb S^{d-1}$, projecting the predictor output onto
+each direction, and averaging the standard-normal Gaussianity statistics
+$T$ (Epps-Pulley~\citep{epps1983test}):
+\begin{align}
+\label{eq:predictive_isotropy_regularizer}
+    \mathcal R_{\mathrm{PI}}(\widehat P_K^{\mathrm{int}};\mathbb A)
+    \coloneqq
+    \frac{1}{|\mathbb A|}
+    \sum_{u\in\mathbb A}
+    T\!\left(\{u^\top \widehat p_n\}_{n=1}^N\right),
+\end{align}
+where
+$\widehat p_n \coloneqq \widehat U_K^\top \widehat W\widehat A z_n$ is the intrinsic predicted output on the $n$-th sample.
+
+By \cref{lem:predictive_isotropy}, the covariance part of this target law $\mathcal N(0,I_d)$ recovers the predictive-isotropy condition on the
+nonzero spectrum of $H_K$; the Gaussian part is the maximum-entropy completion of that covariance constraint.
+\eqref{eq:predictive_isotropy_regularizer} is the predictive analogue
+of LeJEPA's SIGReg~\citep{balestriero2025lejepa}, applied to the
+predictor output rather than the encoder embedding. 
+Where SIGReg
+constrains $\mathcal L(AZ)$ on the input side,
+$\mathcal R_{\mathrm{PI}}$ constrains $\mathcal L(\widehat P_K^{\mathrm{int}})$ on the
+output side, the distributional object whose covariance spectrum is tied
+to the excess-risk bound through $H_K=T_K^\top T_K$ (\cref{thm:predictive_isotropy_opt}).
+
+
+\eqref{eq:predictive_isotropy_regularizer} regularizes the $H_K$ toward isotropy to minimize the excess-risk bound in \cref{prop:unified_risk_decomposition}. 
+In distributional form, this applies the maximum-entropy principle to the intrinsic predictive signal $P_K^{\mathrm{int}}$ without manually choosing a gauge in \cref{lem:gauge_invariance}.
+Together with \cref{thm:subsumes_cov_isotropy,thm:subsumes_gaussian_isotropy}, this shows that isotropic-Gaussian embeddings are encoder-side realizations of the same predictive-isotropy principle.
+This justifies and unifies the two encoder-side regularization paradigms in canonical JEPA~\citep{ermolov2021whitening,bardes2021vicreg,balestriero2025lejepa} as factorized instances of the predictive-isotropy condition for empirical risk minimization.
+
+
+
+
+% \begin{remark}[Toward tight-frame predictors]
+% \label{rem:tight_frame_predictors}
+% Imposing both encoder-side and predictive isotropy forces $H_K=\alpha I_d$,
+% making the restriction of $B_{\mathrm{OLS}}^{\mathrm{raw}}$ to the
+% predictive subspace a scaled partial isometry; equivalently, the target-prediction map forms a tight frame on that subspace. 
+% This points to a connection with neural-collapse style geometries \citep{papyan2020prevalence}.
+% \end{remark}

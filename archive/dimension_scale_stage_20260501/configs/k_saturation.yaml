@@ -1,0 +1,15 @@
+base:
+  n_train: 512
+  n_test: 8192
+  context_dim: 64
+  target_dim: 1
+  r_star: 24
+  d: 24
+  target_strength_slope: 1.13
+  alpha: 1.0
+  overlap: 0.0
+  sigma_z: 0.12
+  sigma_y: 0.12
+sweep:
+  K: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 28, 32, 40, 48, 64, 80, 96]
+  seed: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

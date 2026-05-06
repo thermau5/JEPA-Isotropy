@@ -1,0 +1,166 @@
+\section{Experimental Studies}
+\label{sec:experiments}
+
+% NOTE: This section is written for the main paper. It emphasizes the empirical
+% claims and defers implementation details to the appendix file
+% paper/experiments_appendix.tex.
+
+\paragraph{Setup.}
+We test the theory in a frozen-teacher linear-Gaussian setting where the ground
+truth predictive subspace is known. Each example has latent state
+$s\sim\mathcal N(0,I_{r_\star})$, context
+$z=Cs+\sigma_z\epsilon_z$, and stacked targets
+$Y=(y_1^\top,\ldots,y_K^\top)^\top$ with
+$y_k=A_ks+\sigma_y\epsilon_k$. The context map $C$ is fixed, so the experiments
+isolate the effect of target structure, bottleneck rank, and finite-sample
+conditioning. For rank-growth diagnostics we use the stacked covariance
+$\Sigma_{YZ}$; for bottleneck and post-saturation diagnostics we use the
+whitened raw predictor $T_K=\Sigma_{YZ}^{(K)}\Sigma_{ZZ}^{-1/2}$.
+
+\paragraph{Models.}
+We compare the unconstrained ordinary least-squares predictor with its
+rank-$d$ reduced-rank regression (RRR) truncation. The RRR rank $d$ plays the
+role of the JEPA embedding bottleneck. This removes optimization and encoder
+dynamics, letting each experiment target one mechanism from the theory.
+
+\paragraph{Data.}
+The target stack is constructed to separate complementarity, capacity, and
+conditioning. We use ten deterministic seeds and report means with
+standard-error bands. \Cref{tab:experiment-summary} summarizes the main
+diagnostics; exact generator details and appendix-only controls are in
+\cref{app:experimental-details}.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\hline
+Experiment & Sweep & Fixed quantities & Main outcome & Figure \\
+\hline
+$K$-saturation & $K$ & $D_x=160,\ d=r_\star=64$ & target-count saturation & \cref{fig:k-saturation} \\
+Heterogeneity & $\widehat{\lambda}_{\mathrm{het}}$ & $D_x=64,\ K=48,\ d=24$ & finite-sample recovery & \cref{fig:heterogeneity} \\
+Bottleneck & $d$ & $D_x=64,\ r_\star=24,\ K=48$ & spectral-tail floor & \cref{fig:bottleneck} \\
+Post-saturation & $K$ & $D_x=160,\ r_\star(K)=d=64$ & relative conditioning & \cref{fig:post-saturation} \\
+Predictive isotropy & $\kappa_H^2$ of $H_K$ & $D_x=64,\ r_\star=d=K=24$ & fixed-trace isotropy & \cref{fig:predictive-isotropy} \\
+\hline
+\end{tabular}
+\caption{Main synthetic experiment suite. Appendix diagnostics additionally test
+embedding-versus-predictive isotropy and gauge factorization.}
+\label{tab:experiment-summary}
+\end{table}
+
+\paragraph{Metrics.}
+All paper-facing risk panels use the average per-target normalization of
+$\mathcal R_K$ in \eqref{eq:per_target_risk}, so risks are comparable when
+$K$ changes. We report the quantities appearing in the theory: recovered rank,
+subspace error, heterogeneity $\lambda_{\mathrm{het}}$, relative conditioning
+$\kappa_K^2$, effective dimension, and spectral-tail ratios. Population values
+computed from the known operators are shown as dashed curves; finite-sample
+estimates are shown as solid curves. The appendix defines the effective-rank
+thresholds, fixed-reference-stack probes, calibrated constants, and
+Wedin-bound diagnostics.
+
+\paragraph{Baselines.}
+The main baseline is the population counterpart of each finite-sample metric:
+it is computed directly from the known operators, without sampling noise. For
+bottleneck risk, unconstrained OLS is the reference model and the predicted
+floor is the spectral tail beyond the retained rank.
+
+\paragraph{Results.}
+\Cref{fig:k-saturation,fig:heterogeneity,fig:bottleneck} validate the
+pre-saturation and bottleneck mechanisms. Complementary targets increase
+recovered rank and lower per-target MSE until rank saturates. Larger measured
+$\widehat{\lambda}_{\mathrm{het}}$ improves finite-sample recovery. Sweeping
+$d$ confirms the capacity prediction: model rank follows
+$\min\{d,r_\star\}$ and excess risk tracks the spectral-tail floor.
+
+\Cref{fig:post-saturation} isolates the second, finite-sample saturation
+mechanism. Here $r_\star(K)=d$ throughout, so additional targets cannot create
+new rank. They still help when they improve the relative conditioning
+$\kappa_K^2=\lambda_d(H_K)/\lambda_1(H_K)$ of the already accessible predictive
+directions. As $\kappa_K^2$ increases, subspace error, excess risk, and
+finite-sample risk decrease; the half-gap and calibrated-bound checks are
+reported in \cref{app:experimental-details}.
+
+\Cref{fig:predictive-isotropy} tests the fixed-trace isotropy prediction. With
+rank and $\operatorname{tr}(H_K)$ fixed, only the eigenvalue profile of
+$H_K=T_K^\top T_K$ changes. Consistent with
+\cref{lem:predictive_isotropy,thm:predictive_isotropy_opt}, flatter spectra
+increase the weakest retained signal relative to perturbation, reduce
+$\|\sin\Theta_T\|_{\mathrm{op}}$, and lower the balanced-reference-stack excess
+MSE. Appendix diagnostics show that this predictive isotropy is distinct from
+embedding isotropy, and that the gauge-factorization claims in
+\cref{subsubsec:gauge_factorization} hold under both Gaussian and non-Gaussian
+contexts.
+Finally, \cref{fig:regularizer-digits-samples} visualizes the real-image
+digit-half prediction task, and \cref{tab:regularizer-digits-cost} reports
+the corresponding ten-seed quantitative diagnostic. The proposed
+prediction-aware regularizer reduces low-label target-half pixel MSE and the
+train--test gap while also improving the prediction-side Gaussianity and
+covariance-balance diagnostics.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\hline
+Objective & Test MSE & Test RMSE & Gap & Time \\
+\hline
+No reg. &
+$0.0923{\pm}0.0017$ &
+$0.304{\pm}0.003$ &
+$0.0854{\pm}0.0017$ &
+$9.03{\pm}0.20$ s \ $(1.00{\times})$ \\
+Enc. reg. &
+$0.0786{\pm}0.0013$ &
+$0.280{\pm}0.002$ &
+$0.0629{\pm}0.0014$ &
+$12.55{\pm}0.11$ s \ $(1.39{\times})$ \\
+Pred. reg. &
+$\mathbf{0.0600{\pm}0.0003}$ &
+$\mathbf{0.245{\pm}0.001}$ &
+$\mathbf{0.0200{\pm}0.0007}$ &
+$12.23{\pm}0.04$ s \ $(1.35{\times})$ \\
+Pred.+Enc. &
+$0.0609{\pm}0.0004$ &
+$0.247{\pm}0.001$ &
+$0.0227{\pm}0.0008$ &
+$15.80{\pm}0.13$ s \ $(1.75{\times})$ \\
+\hline
+\end{tabular}
+\caption{Digit regularizer cost--performance. Metrics use right-half pixels
+normalized to $[0,1]$; time is per seed.}
+\label{tab:regularizer-digits-cost}
+\end{table}
+
+% NOTE: Theory labels in this section were checked against 3method (1).tex:
+% cor:post_saturation_relative_rate, eq:post_saturation_excess_risk_bound,
+% prop:post_saturation_risk, eq:post_saturation_half_gap,
+% lem:predictive_isotropy, thm:predictive_isotropy_opt,
+% subsubsec:gauge_factorization, thm:subsumes_cov_isotropy, and
+% thm:subsumes_gaussian_isotropy.
+
+% INTERPRETATION: The experiments support the theory; they do not replace the
+% formal statements. Keep causal language conservative in the final paper.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/exp_post_saturation.pdf}
+    \caption{Post-saturation conditioning. With $r_\star(K)=d$ fixed,
+    allocating targets to weak directions increases $\kappa_K^2$ and reduces
+    finite-sample risk diagnostics.}
+    \label{fig:post-saturation}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/exp_regularizer_digits_samples.pdf}
+    \caption{Digit-half completions. Rows are held-out samples; columns show
+    context, ground truth, and candidate completions. Cell labels report
+    per-sample target-half pixel MSE.}
+    \label{fig:regularizer-digits-samples}
+\end{figure}
+
+% NOTE: Large-scale real-data JEPA validation remains planned rather than claimed.
+% A future version should add EMA target encoders, image masks, representation
+% probes, effective-rank diagnostics, and collapse tests.

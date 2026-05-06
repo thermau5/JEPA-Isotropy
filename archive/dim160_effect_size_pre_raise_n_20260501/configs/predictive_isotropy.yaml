@@ -1,0 +1,19 @@
+base:
+  n_train: 1024
+  n_test: 8192
+  context_dim: 64
+  target_dim: 1
+  r_star: 24
+  K: 24
+  d: 24
+  target_mode: fixed_trace_spectrum
+  subspace_operator: whitened_raw
+  spectrum_trace: 24.0
+  target_strength_slope: 1.0
+  alpha: 1.0
+  overlap: 0.0
+  sigma_z: 0.25
+  sigma_y: 0.25
+sweep:
+  spectrum_decay: [1.0, 0.85, 0.65, 0.45]
+  seed: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
