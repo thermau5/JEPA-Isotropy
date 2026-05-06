@@ -323,23 +323,6 @@ K & \widehat{\eta}_{K,\mathrm{mean}} & \widehat{\eta}_{K,\max}
 \end{array}
 \]
 
-As an appendix-only diagnostic, we also substitute the same
-$\widehat C_{0.9}$ into the intermediate Wedin-style recovery bound from the
-proof of \cref{cor:post_saturation_relative_rate}. This yields the dashed
-subspace-recovery curve in
-\cref{fig:post-saturation-recovery-bound}. The induced curve is conservative:
-it covers all observed $\|\sin\Theta_T\|_{\mathrm{op}}$ values in the plotted
-window, because the deterministic perturbation step is looser than the empirical
-perturbation quantile.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{figures/exp_post_saturation_recovery_bound.pdf}
-    \caption{Post-saturation recovery-bound calibration. The calibrated
-    perturbation bound is conservative but covers the observed subspace error.}
-    \label{fig:post-saturation-recovery-bound}
-\end{figure}
-
 \paragraph{Predictive-isotropy construction.}
 The fixed-trace predictive-isotropy experiment is designed to test the
 second-moment prediction in \cref{lem:predictive_isotropy} and the
@@ -383,41 +366,6 @@ to the boundary where weak directions begin to become difficult to recover. In
 the current ten-seed run, 16 of the 20 spectrum settings have a positive
 perturbative denominator for every seed, and 10 of 20 satisfy the half-gap
 diagnostic for every seed.
-
-\paragraph{Embedding versus predictive isotropy.}
-The embedding-versus-predictive diagnostic varies two spectra independently:
-the synthetic embedding covariance spectrum and the predictive spectrum of
-$H_K=T_K^\top T_K$. The embedding decay values are
-$\rho_{\mathrm{emb}}\in\{1.00,0.65,0.45\}$, and the predictive decay values are
-$\rho_{\mathrm{pred}}\in\{1.00,0.85,0.65,0.45\}$. Both spectra are normalized to
-the same trace within their own space. This creates cases with nearly isotropic
-embedding covariance but badly conditioned predictive operator, and cases with
-anisotropic embedding covariance but well-conditioned predictive operator.
-
-\cref{fig:embedding-vs-predictive-isotropy} reports the result. Averaging over
-predictive spectra, the reference-stack excess MSE is unchanged across the three
-embedding decay values, while changing the predictive spectrum changes the
-subspace-recovery and reference-stack diagnostics. This does not claim that
-embedding isotropy is useless in nonlinear JEPA training; it shows that
-embedding isotropy is not the operator-level quantity appearing in the
-finite-sample recovery bound.
-The fair interpretation is therefore complementary: embedding isotropy controls
-the marginal representation law, while predictive isotropy controls the
-target-conditioned end-to-end signal. In the notation of the theory draft,
-encoder-side regularization acts on the pushforward $\mathcal L(AZ)$, whereas
-predictive isotropy acts on the prediction-aware pushforward
-$\mathcal L(P_K)$ with $P_K=T_K\widetilde Z$. These coincide only under special
-coverage conditions; in general, a representation can be marginally isotropic
-while the target-predictive operator remains highly anisotropic.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{figures/exp_embedding_vs_predictive_isotropy.pdf}
-    \caption{Embedding versus predictive isotropy. Predictive conditioning
-    tracks the reference-stack probe more directly than marginal embedding
-    conditioning.}
-    \label{fig:embedding-vs-predictive-isotropy}
-\end{figure}
 
 \paragraph{Gauge-factorization diagnostic.}
 The gauge diagnostic directly targets \cref{subsubsec:gauge_factorization}.
@@ -497,10 +445,9 @@ regularizer can subsume encoder-side isotropy at the population level; in
 practice, the two terms may still be combined for optimization and collapse
 prevention.
 
-The experiments in
-\cref{fig:predictive-isotropy,fig:embedding-vs-predictive-isotropy} validate
-the second-moment spectral mechanism behind this proposal. The next diagnostic
-tests the corresponding regularizer in a learned nonlinear predictor.
+The experiment in \cref{fig:predictive-isotropy} validates the second-moment
+spectral mechanism behind this proposal. The next diagnostic tests the
+corresponding regularizer in a learned nonlinear predictor.
 
 \paragraph{Digits regularizer experiment.}
 We add a low-label real-data training diagnostic on the

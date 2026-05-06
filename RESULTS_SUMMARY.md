@@ -22,7 +22,6 @@ python -m experiments.exp_heterogeneity
 python -m experiments.exp_bottleneck
 python -m experiments.exp_post_saturation
 python -m experiments.exp_predictive_isotropy
-python -m experiments.exp_embedding_vs_predictive_isotropy
 python -m experiments.exp_gauge_factorization
 python -m experiments.exp_regularizer_digits
 python -m plots.plot_main
@@ -63,11 +62,6 @@ operators.
   empirical finite-window `L_hat`.
   The old unwhitened diagnostic is preserved under
   `archive/post_saturation_legacy/`.
-- `exp_post_saturation_recovery_bound.pdf`: calibrated Proposition 3.2
-  diagnostic. It fits an empirical 90% version of the concentration constant
-  `C` from the proof definition of `epsilon_n`, giving `C_hat=1.79` for the
-  normalized perturbation and plotting the induced Wedin-style subspace
-  recovery bound against the observed `sinTheta_T` curve.
 - `exp_predictive_isotropy.pdf`: fixed-rank, fixed-trace spectrum ablation for
   the new predictive-isotropy section. It holds `rank(T_K)=d`, `K=d`, and
   `tr(H_K)` fixed while moving only the eigenvalue profile of
@@ -78,11 +72,6 @@ operators.
   the weak retained signal, empirical
   perturbation scale, Wedin recovery bound, observed `sinTheta_T`,
   and balanced-reference-stack excess MSE.
-- `exp_embedding_vs_predictive_isotropy.pdf`: independent embedding-spectrum
-  and predictive-spectrum appendix grid. It constructs cases where embedding covariance
-  is isotropic but the predictive operator is badly conditioned, and conversely,
-  showing that the reference-stack probe follows predictive isotropy more
-  directly than embedding isotropy.
 - `exp_gauge_factorization.pdf`: appendix diagnostic for Section 3.6.1. It
   fixes one population whitened predictor `T_K=U S V^T`, applies identity,
   random orthogonal, diagonal, and nonlinear Gaussianizing gauges under

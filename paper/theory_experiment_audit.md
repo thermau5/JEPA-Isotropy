@@ -81,7 +81,6 @@ visible in `jepa_thomas (25).pdf`.
 | Bottleneck | `configs/bottleneck.yaml` | `D_x=64`, `r_star=24`, `K=48`, `d` swept |
 | Post-saturation | `configs/post_saturation.yaml` | `D_x=160`, `r_star=d=64`, `K=64..512`, `n_train=16384`, `subspace_operator=whitened_raw` |
 | Predictive isotropy | `configs/predictive_isotropy.yaml` | `D_x=64`, `r_star=d=K=24`, fixed `tr(H_K)` |
-| Embedding vs. predictive isotropy | `configs/embedding_vs_predictive_isotropy.yaml` | `D_x=64`, `r_star=d=K=24`, independent embedding/predictive spectra |
 | Gauge factorization | `configs/gauge_factorization.yaml` | `D_x=64`, `r_star=d=K=24`, identity/orthogonal/diagonal gauges |
 | Regularizer digits | `configs/regularizer_digits.yaml` | nonlinear half-digit prediction, 10 seeds, encoder/predictive Gaussianity penalties |
 
@@ -256,8 +255,6 @@ Therefore the current experimental claim should be precise:
 
 - Figure 6 validates the second-moment spectral mechanism behind
   `lem:predictive_isotropy` and `thm:predictive_isotropy_opt`.
-- Appendix `fig:embedding-vs-predictive-isotropy` checks that marginal embedding isotropy and predictive isotropy can
-  decouple.
 `figures/exp_regularizer_digits.pdf` now gives a learned low-label validation
 of the regularizer on real digit images. It is not a large-scale image JEPA
 claim, but it does move beyond closed-form synthetic operators: a nonlinear

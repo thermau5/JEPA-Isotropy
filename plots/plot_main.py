@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 from matplotlib.ticker import FixedLocator, FuncFormatter, MultipleLocator, NullFormatter
 import numpy as np
 import pandas as pd
@@ -705,94 +704,6 @@ def empirical_quantile(values: pd.Series, probability: float) -> float:
     return float(sorted_values[index])
 
 
-def plot_post_saturation_recovery_bound(delta: float = 0.1) -> None:
-    frame = pd.read_csv(RESULTS / "exp_post_saturation.csv").copy()
-    probability = 1.0 - delta
-    frame["normalized_operator_error"] = (
-        frame["operator_error_op"] / frame["oracle_sigma_top"].clip(lower=1e-12)
-    )
-    frame["concentration_scale"] = np.sqrt(
-        (frame["oracle_effdim"] + np.log(1.0 / delta)) / frame["n_train"]
-    )
-    c_ratios = frame["normalized_operator_error"] / frame["concentration_scale"]
-    c_hat = empirical_quantile(c_ratios, probability)
-    frame["calibrated_concentration_rhs"] = c_hat * frame["concentration_scale"]
-    kappa = np.sqrt(frame["oracle_relative_conditioning"].clip(lower=0.0))
-    denominator = kappa - frame["calibrated_concentration_rhs"]
-    frame["calibrated_subspace_bound"] = np.where(
-        denominator > 0.0,
-        frame["calibrated_concentration_rhs"] / denominator,
-        np.nan,
-    )
-    coverage = float(np.mean(c_ratios <= c_hat))
-    summary = mean_sem(
-        frame,
-        "K",
-        [
-            "normalized_operator_error",
-            "calibrated_concentration_rhs",
-            "theorem_subspace_error",
-            "calibrated_subspace_bound",
-        ],
-    )
-    fig, axes = make_figure(ncols=2, figsize=(7.1, 2.25))
-    line_with_band(
-        axes[0],
-        summary,
-        "K",
-        "normalized_operator_error",
-        r"Finite sample $\widehat{\eta}_K$",
-        color=BLUE,
-        marker="o",
-        zorder=4,
-    )
-    dashed_theory(
-        axes[0],
-        summary,
-        "K",
-        "calibrated_concentration_rhs",
-        label=rf"Calibrated {coverage:.0%} bound",
-        zorder=1,
-    )
-    line_with_band(
-        axes[1],
-        summary,
-        "K",
-        "theorem_subspace_error",
-        "Finite-sample subspace error",
-        color=BLUE,
-        marker="o",
-        zorder=4,
-    )
-    dashed_theory(
-        axes[1],
-        summary,
-        "K",
-        "calibrated_subspace_bound",
-        label=rf"Calibrated {coverage:.0%} bound",
-        zorder=1,
-    )
-    for ax in axes:
-        ax.set_xscale("log", base=2)
-        ticks = [int(x) for x in summary["K"] if x in {64, 128, 256, 512}]
-        ax.set_xticks(ticks)
-        ax.set_xticklabels([str(x) for x in ticks])
-        add_axis_legend(ax)
-    style_axis(
-        axes[0],
-        "Target count $K$",
-        r"Normalized perturbation",
-        "(a)",
-    )
-    style_axis(
-        axes[1],
-        "Target count $K$",
-        r"Subspace recovery",
-        "(b)",
-    )
-    save_figure(fig, FIGURES / "exp_post_saturation_recovery_bound.pdf")
-
-
 def compact_scientific(value: float, precision: int = 1) -> str:
     if np.isclose(value, 1.0):
         return "1"
@@ -917,50 +828,6 @@ def plot_predictive_isotropy() -> None:
     style_axis(axes[2], r"Population $\kappa_H^2$", "Subspace recovery", "(c)")
     style_axis(axes[3], r"Population $\kappa_H^2$", "Balanced-stack excess MSE", "(d)")
     save_figure(fig, FIGURES / "exp_predictive_isotropy.pdf")
-
-
-def plot_embedding_vs_predictive_isotropy() -> None:
-    frame = pd.read_csv(RESULTS / "exp_embedding_vs_predictive_isotropy.csv").copy()
-    frame["common_excess_plot"] = frame["theorem_fixed_eval_excess_mse"].clip(lower=1e-5)
-    fig, axes = make_figure(ncols=3, figsize=(7.1, 2.25))
-    scatter = axes[0].scatter(
-        frame["embedding_entropy_gap"],
-        frame["oracle_entropy_gap"],
-        c=frame["common_excess_plot"],
-        cmap="viridis",
-        norm=LogNorm(vmin=frame["common_excess_plot"].min(), vmax=frame["common_excess_plot"].max()),
-        s=14,
-        alpha=0.78,
-        linewidths=0.0,
-    )
-    axes[1].scatter(
-        frame["embedding_relative_conditioning"],
-        frame["common_excess_plot"],
-        color=BLUE,
-        s=14,
-        alpha=0.65,
-        linewidths=0.0,
-    )
-    axes[2].scatter(
-        frame["oracle_relative_conditioning"],
-        frame["common_excess_plot"],
-        color=TEAL,
-        s=14,
-        alpha=0.65,
-        linewidths=0.0,
-    )
-    axes[1].set_xscale("log")
-    axes[1].set_yscale("log")
-    axes[2].set_xscale("log")
-    axes[2].set_yscale("log")
-    axes[0].set_xlim(-4.1, 0.1)
-    axes[0].set_ylim(-4.1, 0.1)
-    style_axis(axes[0], "Embedding entropy gap", "Predictive entropy gap", "(a)")
-    style_axis(axes[1], r"Embedding $\kappa^2$", "Reference-stack excess MSE", "(b)")
-    style_axis(axes[2], r"Predictive $\kappa_K^2(T_K)$", "Reference-stack excess MSE", "(c)")
-    colorbar = fig.colorbar(scatter, ax=axes, fraction=0.025, pad=0.02)
-    colorbar.set_label("Reference-stack excess MSE")
-    save_figure(fig, FIGURES / "exp_embedding_vs_predictive_isotropy.pdf")
 
 
 def plot_gauge_factorization() -> None:
@@ -1135,9 +1002,7 @@ def main() -> None:
     plot_heterogeneity()
     plot_bottleneck()
     plot_post_saturation()
-    plot_post_saturation_recovery_bound()
     plot_predictive_isotropy()
-    plot_embedding_vs_predictive_isotropy()
     plot_gauge_factorization()
     plot_regularizer_digits()
 
