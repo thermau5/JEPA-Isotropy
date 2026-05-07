@@ -162,7 +162,7 @@ def plot_samples(config_path: Path, output_path: Path, seed: int = 0) -> None:
     chosen = choose_examples(y_test, predictions["baseline"], predictions["predictive_gaussian"])
 
     configure_matplotlib()
-    plt.rcParams.update({"font.weight": "semibold", "axes.titleweight": "semibold"})
+    plt.rcParams.update({"font.weight": "normal", "axes.titleweight": "normal"})
 
     column_specs = [("Context", None), ("Target", None)] + [(lbl, m) for m, lbl in METHODS]
     fig_w, fig_h = 6.2, 2.35
@@ -184,7 +184,7 @@ def plot_samples(config_path: Path, output_path: Path, seed: int = 0) -> None:
 
     for col, (lbl, _) in enumerate(column_specs):
         fig.text(x_positions[col] + 0.5 * widths[col], 0.94, lbl,
-                 ha="center", va="bottom", fontsize=9.0, fontweight="semibold")
+                 ha="center", va="bottom", fontsize=9.0, fontweight="normal")
 
     for row, idx in enumerate(chosen):
         for col, (_, method) in enumerate(column_specs):
@@ -207,10 +207,10 @@ def plot_samples(config_path: Path, output_path: Path, seed: int = 0) -> None:
                 spine.set_visible(True); spine.set_linewidth(0.3); spine.set_edgecolor("#D4D4D4")
             if col == 0:
                 ax.set_ylabel(f"sample {row + 1}", rotation=0, ha="right", va="center",
-                              labelpad=9.0, color=GRAY, fontsize=8.8, fontweight="semibold")
+                              labelpad=9.0, color=GRAY, fontsize=8.8, fontweight="normal")
             if method is not None:
                 ax.text(0.5, -0.075, f"MSE={sample_mse:.3f}", transform=ax.transAxes,
-                        ha="center", va="top", fontsize=7.0, fontweight="semibold",
+                        ha="center", va="top", fontsize=7.0, fontweight="normal",
                         color=GRAY, clip_on=False)
 
     sep_x = 0.5 * (axes[0, 1].get_position().x1 + axes[0, 2].get_position().x0)

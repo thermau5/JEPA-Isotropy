@@ -1,7 +1,7 @@
 # Theory/Experiment Audit
 
 Updated May 6, 2026 after the latest method-section revision. This
-note audits the current repo results against the uploaded `3method (1).tex`. The canonical
+note audits the current repo results against the uploaded `3method (2).tex`. The canonical
 post-saturation and predictive-isotropy object is the whitened raw predictor
 
 ```text
@@ -14,21 +14,22 @@ The archived unwhitened post-saturation run is under
 `archive/post_saturation_legacy/`; the root-level post-saturation config,
 result, and figure now use `T_K`.
 
-Current paper-readiness status: the paper-facing figures are regenerated from
-ten-seed CSVs, all referenced PDF figures exist, terminology has been aligned
-to target/reference **stack** language, and the newest regularizer diagnostic is
-a learned nonlinear real-data experiment rather than a closed-form synthetic
-operator. The remaining scope caveat is intentional: large-scale masked-image
+Current paper-readiness status: the synthetic paper-facing figures are
+regenerated from ten-seed CSVs, the scaled MNIST regularizer diagnostic now uses
+a ten-seed GPU CNN run, all referenced PDF figures exist, terminology has been aligned to
+target/reference **stack** language, and the newest regularizer diagnostics are
+learned nonlinear real-data experiments rather than closed-form synthetic
+operators. The remaining scope caveat is intentional: large-scale masked-image
 JEPA training is still future work, not claimed by this experiment section.
 
 ## Latest Draft Delta
 
-Compared with the previous audit target, `3method (1).tex` makes the following
+Compared with the previous audit target, `3method (2).tex` makes the following
 label/name changes that matter for experiment references:
 
 | Previous reference in repo prose | Latest draft reference |
 | --- | --- |
-| excess-risk-bound reference | `eq:post_saturation_excess_risk_bound` |
+| risk-decomposition bound | `eq:risk_decomposition` |
 | risk-decomposition cref | `prop:post_saturation_risk` |
 | unified risk decomposition | `prop:unified_risk_decomposition` |
 | risk-reduction levers remark | `rem:two_stage_mechanism` |
@@ -39,11 +40,8 @@ label/name changes that matter for experiment references:
 | Gaussian gauge/isotropy result | `thm:subsumes_gaussian_isotropy` |
 
 The current repo text has been updated to cite these labels. The
-post-saturation recovery/rate labels used by the experiment section are also
-present in `3method (1).tex`:
-`prop:post_saturation_relative_recovery`,
-`cor:post_saturation_relative_rate`, `eq:post_saturation_epsilon`, and
-`eq:post_saturation_half_gap`.
+post-saturation labels used by the experiment section are also present in
+`3method (2).tex`: `prop:post_saturation_risk` and `eq:risk_decomposition`.
 
 ## Experiment Text Synchronization Warning
 
@@ -83,6 +81,8 @@ visible in `jepa_thomas (25).pdf`.
 | Predictive isotropy | `configs/predictive_isotropy.yaml` | `D_x=64`, `r_star=d=K=24`, fixed `tr(H_K)` |
 | Gauge factorization | `configs/gauge_factorization.yaml` | `D_x=64`, `r_star=d=K=24`, identity/orthogonal/diagonal gauges |
 | Regularizer digits | `configs/regularizer_digits.yaml` | nonlinear half-digit prediction, 10 seeds, encoder/predictive Gaussianity penalties |
+| Regularizer MNIST MLP | `configs/regularizer_mnist.yaml` | 28x28 half-image prediction, 10 seeds, low-label MLP diagnostic |
+| Regularizer MNIST CNN | `configs/regularizer_mnist_gpu.yaml` | 28x28 half-image prediction, 10 seeds, GPU CNN encoder and spatial decoder |
 
 ## Figure 5 Audit: Post-Saturation
 
@@ -94,8 +94,8 @@ visible in `jepa_thomas (25).pdf`.
 | (b) | `kappa_K^2=lambda_d(H_K)/lambda_1(H_K)` | Directly checks the finite-window relative-conditioning premise. |
 | (c) | `effdim(T_K)` | Checks the bounded effective-dimension term in the concentration bound. |
 | (d) | per-target excess risk vs. `L_hat ||sinTheta_T||_op` | Empirical finite-window diagnostic for the subspace-Lipschitz bridge. |
-| (e) | per-target excess risk vs. calibrated excess-risk bound | Checks the left-hand-side quantity in `eq:post_saturation_excess_risk_bound` against the calibrated bound. |
-| (f) | finite-sample per-target risk vs. calibrated risk-decomposition bound | Checks `prop:post_saturation_risk`; in this config the spectral-tail term is zero up to numerical precision because `d=r_star(K)`. |
+| (e) | per-target excess risk vs. calibrated excess-risk bound | Checks the finite-sample excess term inside `eq:risk_decomposition`. |
+| (f) | finite-sample per-target risk vs. calibrated risk-decomposition bound | Checks `prop:post_saturation_risk` and `eq:risk_decomposition`; in this config the spectral-tail term is zero up to numerical precision because `d=r_star(K)`. |
 
 Current ten-seed readout:
 
@@ -177,8 +177,8 @@ phrased as a proof of a global constant.
 | `lem:gauge_invariance` | `exp_gauge_factorization` constructs multiple gauges of the same population `T_K` and measures end-to-end prediction error. | Covered |
 | `thm:subsumes_cov_isotropy` | The same diagnostic compares encoder covariance anisotropy under identity, orthogonal, and diagonal gauges for Gaussian and Laplace contexts. | Covered |
 | `thm:subsumes_gaussian_isotropy` / `cor:linear_gauss` | The diagnostic reports projected standard-normal discrepancy for SVD-aligned, orthogonal, and nonlinear Gaussianizing gauges. | Covered in controlled Gaussian/Laplace setting |
-| Section 3.6.2 predictive Gaussianity regularizer | `exp_regularizer_digits` trains a nonlinear encoder-predictor on real digit halves with encoder-side and prediction-side projected-Gaussianity regularizers. | Covered as small-scale real-data diagnostic |
-| Embedding vs. predictive isotropy | The grid varies embedding and predictive spectra independently. | Covered as exploratory diagnostic |
+| Section 3.6.2 predictive Gaussianity regularizer | `exp_regularizer_digits` trains a nonlinear encoder-predictor on real digit halves with Encoder and prediction-side projected-Gaussianity regularizers. | Covered as small-scale real-data diagnostic |
+| Scaled predictive Gaussianity regularizer | `exp_regularizer_mnist_gpu` repeats the left-to-right completion diagnostic with 28x28 MNIST, a convolutional encoder, and a spatial decoder. | Covered as scaled real-image diagnostic |
 
 ## Bottom Line
 
@@ -273,7 +273,7 @@ Current ten-seed readout:
 This is now a risk-facing result: prediction-side regularization gives the
 largest test-MSE and generalization-gap improvement. The
 prediction-plus-encoder condition is a subsumption control: it is similar on
-test risk, so encoder-side isotropy is not providing an additional risk
+test risk, so Encoder isotropy is not providing an additional risk
 mechanism once the prediction-side condition is present. The Gaussianity score
 is a manipulation check for the proposed penalty, not the main outcome; the
 main outcome is the lower test risk.

@@ -4,12 +4,15 @@
 % NOTE: This appendix is intended to be pasted after the main experimental
 % section. It records implementation-level details that are useful for
 % reproducibility but would otherwise distract from the main claims in Section 4.
-% NOTE: Predictive-isotropy labels were checked against 3method (1).tex:
+% NOTE: Predictive-isotropy labels were checked against 3method (3).tex:
 % lem:predictive_isotropy is the second-moment equivalence and
 % thm:predictive_isotropy_opt is the fixed-trace excess-risk minimization result.
 
+\subsection{Synthetic Experiment Details}
+\label{app:synthetic-experimental-details}
+
 \paragraph{Synthetic generator.}
-Each synthetic instance is generated from a latent linear--Gaussian model. We
+Each synthetic instance is generated from a latent linear-Gaussian model. We
 sample a latent vector $s \in \mathbb{R}^{r_\star}$ and observe
 \[
     z = C s + \sigma_z \epsilon_z,
@@ -18,9 +21,8 @@ sample a latent vector $s \in \mathbb{R}^{r_\star}$ and observe
 \]
 where $C \in \mathbb{R}^{D_x \times r_\star}$ is a randomly sampled
 orthonormal context operator, $a_k$ is the $k$th target direction, and the noise
-terms are independent isotropic Gaussians. Thus the population predictive
-structure is known, but the context coordinates are not aligned with the
-canonical basis.
+terms are independent isotropic Gaussians. The population predictive structure
+is known, but the context coordinates are not aligned with the canonical basis.
 
 % NOTE: The random orthonormal C avoids the degenerate identity-coordinate case
 % while preserving a clean ground-truth predictive subspace for measuring
@@ -32,8 +34,8 @@ bottleneck experiments, we use a complementary target stack whose directions
 progressively cover the $r_\star$ latent predictive coordinates. In the
 heterogeneity experiment, the construction parameter is chosen so that the
 induced population heterogeneity level $\lambda_{\mathrm{het}}$ is sampled
-approximately evenly; the plot therefore uses the measured heterogeneity level
-directly on the horizontal axis.
+approximately evenly. The plot uses the measured heterogeneity level directly
+on the horizontal axis.
 In the predictive-isotropy ablation, the target stack is constructed to control
 the spectrum directly. For a spectrum decay parameter $\rho\in(0,1]$, we set
 \[
@@ -46,15 +48,14 @@ the spectrum directly. For a spectrum decay parameter $\rho\in(0,1]$, we set
     \tau\frac{\rho^{i-1}}{\sum_{j=1}^d\rho^{j-1}},
 \]
 where $Q$ is a random orthogonal rotation and $\tau$ is fixed across all
-conditions. Thus $\operatorname{rank}(A)=d$ and
-$\operatorname{tr}(A^\top A)=\tau$ are unchanged, while the measured spectrum
-condition
+conditions. This keeps $\operatorname{rank}(A)=d$ and
+$\operatorname{tr}(A^\top A)=\tau$ fixed, while the measured spectrum condition
 $\kappa_H^2=\lambda_d(H_K)/\lambda_1(H_K)$ ranges from $1$ to approximately
-$10^{-8}$. Since the context operator has orthonormal columns and $\sigma_z$ is
-fixed, this fixes the nonzero spectrum of $H_K=T_K^\top T_K$ up to the same
-scalar context-noise factor across all conditions. The decay parameter $\rho$
-is therefore only a generator knob; the figure and interpretation use the
-measured operator quantities $\kappa_H^2$ and entropy gap.
+$10^{-8}$. Because the context operator has orthonormal columns and $\sigma_z$
+is fixed, the nonzero spectrum of $H_K=T_K^\top T_K$ changes only by the same
+context-noise scalar across all conditions. The decay parameter $\rho$ is only
+a generator knob. The figure and interpretation use the measured operator
+quantities $\kappa_H^2$ and entropy gap.
 
 % INTERPRETATION: Heterogeneity uses lambda_het as the primary x-axis so the
 % appendix plot directly reports the paper's conditioning variable.
@@ -63,37 +64,31 @@ measured operator quantities $\kappa_H^2$ and entropy gap.
 We first estimate the unrestricted linear predictor by ordinary least squares
 and then compute its rank-$d$ reduced-rank regression approximation by
 truncating the singular spectrum. The learned BM-JEPA linear predictor is
-therefore the best rank-constrained linear map induced by the finite training
-sample. Population curves use the corresponding population cross-covariance
-operator under the same target stack and bottleneck dimension.
+the best rank-constrained linear map induced by the finite training sample.
+Population curves use the population cross-covariance operator under the same
+target stack and bottleneck dimension.
 
 \paragraph{Metrics.}
 All paper-facing MSE panels report average per-target test mean-squared error,
 matching the normalization of $\mathcal R_K$ in \eqref{eq:per_target_risk}.
-The CSV files also retain fixed-reference-stack diagnostics on a common rich evaluation
-target stack as auxiliary representation probes, but these are not the main
-risk quantities used in the theory-facing panels. In \cref{fig:heterogeneity},
-we show both quantities because they answer different questions: per-target
-$\mathcal R_K$ evaluates the changing target stack used for training, whereas
-reference-stack MSE evaluates the recovered subspace on a common rich target stack.
+The CSV files also retain fixed-reference-stack diagnostics on a common
+reference target stack. These are auxiliary representation probes, not the
+theory-facing risk quantities. In \cref{fig:heterogeneity}, per-target
+$\mathcal R_K$ evaluates the changing target stack used for training.
+Reference-stack MSE evaluates transfer of the recovered subspace to a common
+target stack.
 As heterogeneity increases, $\mathcal R_K$ can remain nearly constant or rise
 slightly because the task becomes less redundant; the reference-stack probe can
 decrease at the same time because the recovered subspace becomes more complete.
 The standard-error band of $\mathcal R_K$ also shrinks as target coverage spreads
-across more latent directions, so the per-target average becomes less dominated
-by a single shared direction.
+across more latent directions, so the per-target average is less dominated by a
+single shared direction.
 In \cref{fig:predictive-isotropy}, panel (d) uses a related reference-stack probe:
 after estimating the top-$d$ right singular subspace of the whitened operator
 $\widehat T_K$, we fit a linear predictor from that recovered subspace to a
-fixed flat evaluation target stack. This reference-stack excess MSE is not a new
-training objective; it is a representation diagnostic showing whether the
+fixed flat evaluation target stack. This reference-stack excess MSE is a
+representation diagnostic, not a training objective. It measures whether the
 recovered predictive subspace captures all latent directions equally well.
-For the embedding-versus-predictive isotropy diagnostic, we additionally assign
-a synthetic embedding covariance spectrum with eigenvalues proportional to
-$\rho_{\mathrm{emb}}^{i-1}$ and fixed trace. This embedding spectrum is varied
-independently of the predictive spectrum of $H_K$. It should therefore be read
-as a controlled proxy for embedding-level isotropy diagnostics, not as a second
-training objective.
 Recovered rank is the effective numerical rank of the learned predictor,
 computed using a relative singular-value threshold of $0.05$ times the leading
 singular value. The heterogeneity metric $\lambda_{\mathrm{het}}$ is the
@@ -105,14 +100,14 @@ the largest principal-angle sine between the recovered and true predictive
 subspaces.
 For the heterogeneity recovery bound, we also compute the empirical
 perturbation $\widehat{\epsilon}=\|\widehat{\Sigma}_{YZ}-\Sigma_{YZ}\|_{\rm op}$
-and the corresponding Davis--Kahan/Wedin-style denominator
+and the corresponding Davis-Kahan/Wedin-style denominator
 $\sqrt{\lambda_{\mathrm{het}}}-\widehat{\epsilon}$. When this denominator is
 nonpositive, the finite-sample bound is vacuous. We keep these quantities in
 the CSV as validity diagnostics, but omit them from
 \cref{fig:heterogeneity} because the bound is loose for this sweep and is
-less informative than the rank and risk panels. The sharper recovery-bound
-visualization appears in the post-saturation experiment, where the relative
-conditioning condition is non-vacuous over the main finite window.
+less informative than the rank and risk panels. The post-saturation experiment
+plots the recovery-bound diagnostic in a finite window where the relative
+conditioning condition is non-vacuous.
 
 For the bottleneck experiment, the plotted spectral-tail quantity is the
 reduced-rank approximation error predicted by the bottleneck spectral-tail
@@ -130,12 +125,12 @@ the unrestricted OLS estimator.
 
 The rank panel in the bottleneck figure reports the effective rank of the
 learned reduced-rank predictor, not the rank of the stacked cross-covariance.
-The latter is fixed by the target stack and therefore does not change when the
-bottleneck dimension is swept. Since the synthetic target stack has latent
+The latter is fixed by the target stack and does not change when the bottleneck
+dimension is swept. Since the synthetic target stack has latent
 predictive rank $r_\star=24$, a well-estimated rank-$d$ predictor is expected to
-use approximately $\min\{d,r_\star\}$ directions. This panel is therefore a
-sanity check that the bottleneck cap is the active rank constraint before
-$d=r_\star$ and that additional capacity is unused afterward.
+use approximately $\min\{d,r_\star\}$ directions. The rank panel checks that the
+bottleneck cap is the active rank constraint before $d=r_\star$ and that
+additional capacity is unused afterward.
 
 % NOTE: The spectral-tail curve is not an additional fitted model. It is
 % computed directly from the singular spectrum and compared with observed
@@ -146,8 +141,8 @@ The main finite-sample baseline is unrestricted OLS, which removes the
 embedding bottleneck. Population curves are included as reference predictions
 for the same synthetic distribution. The bottleneck experiment additionally
 reports a plug-in spectral tail computed from the finite-sample OLS spectrum,
-allowing the risk decomposition to be checked using learned empirical
-quantities rather than only population quantities.
+so the risk decomposition can be checked using learned empirical quantities
+rather than only population quantities.
 
 \paragraph{Configuration summary.}
 We list the main Phase-1 configurations used for the reported figures in
@@ -156,7 +151,7 @@ We list the main Phase-1 configurations used for the reported figures in
 \begin{table}[t]
 \centering
 \small
-\caption{Phase-1 synthetic experiment configurations.}
+\caption{\small Phase-1 synthetic experiment configurations.}
 \label{tab:appendix-configs}
 \begin{tabular}{lccccccc}
 \hline
@@ -167,7 +162,6 @@ Heterogeneity & $32768$ & $8192$ & $64$ & $24$ & $48$ & $24$ & $0.10$ \\
 Bottleneck & $128$ & $8192$ & $64$ & $24$ & $48$ & sweep & $0.16$ \\
 Post-saturation & $16384$ & $8192$ & $160$ & $64$ & sweep & $64$ & $0.25$ \\
 Predictive isotropy & $1024$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
-Embedding vs. predictive isotropy & $1024$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 Gauge factorization & $8192$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 \hline
 \end{tabular}
@@ -176,7 +170,7 @@ Gauge factorization & $8192$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_k_saturation.pdf}
-    \caption{$K$-saturation diagnostic. Complementary targets reduce
+    \caption{\small $K$-saturation diagnostic. Complementary targets reduce
     per-target MSE and increase recovered rank until predictive rank
     saturates.}
     \label{fig:k-saturation}
@@ -185,7 +179,7 @@ Gauge factorization & $8192$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_heterogeneity.pdf}
-    \caption{Target-heterogeneity diagnostic. Larger
+    \caption{\small Target-heterogeneity diagnostic. Larger
     $\widehat{\lambda}_{\mathrm{het}}$ improves rank recovery; the
     reference-stack probe measures transfer to a common target stack.}
     \label{fig:heterogeneity}
@@ -194,7 +188,7 @@ Gauge factorization & $8192$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_bottleneck.pdf}
-    \caption{Embedding-bottleneck diagnostic. As $d$ increases, model rank
+    \caption{\small Embedding-bottleneck diagnostic. As $d$ increases, model rank
     follows $\min\{d,r_\star\}$ and excess risk tracks the spectral-tail
     ratio.}
     \label{fig:bottleneck}
@@ -203,7 +197,7 @@ Gauge factorization & $8192$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_predictive_isotropy.pdf}
-    \caption{Predictive-isotropy diagnostic. At fixed rank and trace, flatter
+    \caption{\small Predictive-isotropy diagnostic. At fixed rank and trace, flatter
     spectra of $H_K=T_K^\top T_K$ improve recovery and reduce
     balanced-stack excess MSE.}
     \label{fig:predictive-isotropy}
@@ -241,24 +235,21 @@ where $Q$ is a fixed random orthogonal rotation and
     =
     0.02^{(i-1)/63}.
 \]
-Thus the stack is already rank-$64$, but
+The stack is already rank-$64$, but
 $\kappa_{K^\star}^2\approx 0.02$. For $K>K^\star$, each additional target row
-is added to the currently weakest eigendirection and contributes $0.1$ units of
-target energy. This keeps $r_\star(K)=d$ throughout the plotted window while
-increasing $\kappa_K^2$. The finite-sample subspace error and per-target excess
-MSE decrease over the same window, supporting the repaired post-saturation
-claim that extra targets help only when they improve relative conditioning of
-the already-accessible predictive subspace.
-In \cref{fig:post-saturation}, we keep the core post-saturation diagnostics in
-the first row: the weakest and top eigenvalues of $H_K=T_K^\top T_K$ in a
-shared panel, the relative conditioning ratio $\kappa_K^2$, and the effective
-dimension of $T_K$. The
-second row reports the risk-stability bound, excess risk, and finite-sample
-risk. The
-effective-dimension panel checks that
-$\operatorname{effdim}(T_K)$ remains bounded over the finite
-window in the finite-window post-saturation relative-geometry condition. To instantiate the
-risk-stability constant, we compute the empirical ratio
+is added to the currently weakest eigendirection, with $0.1$ units of target
+energy. This keeps $r_\star(K)=d$ throughout the plotted window while increasing
+$\kappa_K^2$. The finite-sample subspace error and per-target excess MSE
+decrease over the same window, consistent with the post-saturation claim: extra
+targets help only when they improve relative conditioning of the
+already-accessible predictive subspace.
+\Cref{fig:post-saturation} reports the weakest and top eigenvalues of
+$H_K=T_K^\top T_K$, the relative conditioning ratio $\kappa_K^2$, the effective
+dimension of $T_K$, the risk-stability bound, excess risk, and finite-sample
+risk. The effective-dimension panel checks that
+$\operatorname{effdim}(T_K)$ remains bounded over the finite window required by
+the post-saturation relative-geometry condition. We compute the empirical
+risk-stability ratio
 \[
     \widehat L_K
     =
@@ -266,15 +257,16 @@ risk-stability constant, we compute the empirical ratio
     {\|\sin\Theta(V_K,\widehat V_K)\|_{\mathrm{op}}},
 \]
 using per-target excess MSE in the numerator, and set
-$\widehat L=\max_{K,\mathrm{seed}}\widehat L_K$. Panel (d) then plots the
-excess-risk left-hand side against the empirical bound curve
+$\widehat L=\max_{K,\mathrm{seed}}\widehat L_K$. Panel (d) plots the
+excess-risk left-hand side against
 $\widehat L\|\sin\Theta(V_K,\widehat V_K)\|_{\mathrm{op}}$, matching the form of
 the normalized risk-stability condition. Each seed is one
 deterministic draw of the synthetic data and target stack, and the same
 $\widehat L$ is used across the full plotted window. In the current run this
 gives $\widehat L=7.07\times10^{-3}$.
 
-For the concentration constant in \eqref{eq:post_saturation_epsilon}, we set
+For the concentration constant used in the proof of
+\cref{prop:post_saturation_risk}, we set
 $\delta=0.1$ and compute
 \[
     a_K
@@ -285,22 +277,21 @@ $\delta=0.1$ and compute
     =
     \frac{\|\widehat T_K-T_K\|_{\mathrm{op}}}{\|T_K\|_{\mathrm{op}}}.
 \]
-We then set $\widehat C_{0.9}$ to the $90$th percentile, over all plotted
+We set $\widehat C_{0.9}$ to the $90$th percentile, over all plotted
 $(K,\mathrm{seed})$ pairs, of $\widehat{\eta}_K/a_K$. This gives
 $\widehat C_{0.9}=1.79$ and covers $90/100$ normalized perturbation samples by
 construction. Panel (e) uses the calibrated bound
 \[
     \frac{2\widehat L\widehat C_{0.9}a_K}{\kappa_K}
 \]
-from \eqref{eq:post_saturation_excess_risk_bound}. Panel (f) adds this term to
-the population OLS risk estimate, matching the risk-decomposition bound in
-\cref{prop:post_saturation_risk}. In this post-saturation setting
+from the excess-risk term in \eqref{eq:risk_decomposition}. Panel (f) adds the
+same term to the population OLS risk estimate, matching the risk-decomposition
+bound in \cref{prop:post_saturation_risk}. Here
 $d=r_\star(K)$, so the spectral-tail term is zero up to numerical precision.
 
-% NOTE: Post-saturation labels were checked against 3method (1).tex.
-To check that the simplified rate is not vacuous in the plotted regime, we
-evaluate the empirical analogue of the half-gap condition in
-\eqref{eq:post_saturation_half_gap}. Define the normalized perturbation
+% NOTE: Post-saturation labels were checked against 3method (3).tex.
+We evaluate the empirical analogue of the half-gap condition stated in
+\cref{prop:post_saturation_risk} using the normalized perturbation
 \[
     \widehat{\eta}_K
     :=
@@ -324,18 +315,17 @@ K & \widehat{\eta}_{K,\mathrm{mean}} & \widehat{\eta}_{K,\max}
 \]
 
 \paragraph{Predictive-isotropy construction.}
-The fixed-trace predictive-isotropy experiment is designed to test the
-second-moment prediction in \cref{lem:predictive_isotropy} and the
-fixed-trace bound minimization in
-\cref{thm:predictive_isotropy_opt}, without changing rank or total
-signal energy.
+The fixed-trace predictive-isotropy experiment tests the second-moment
+prediction in \cref{lem:predictive_isotropy} and the fixed-trace bound
+minimization in \cref{thm:predictive_isotropy_opt}, with rank and total signal
+energy held fixed.
 All conditions use $D_x=64$, $r_\star=d=K=24$,
 $\sigma_z=\sigma_y=0.25$, and
 $\operatorname{tr}(H_K)=22.59$ after the common whitening/context-noise scaling.
 The generator uses 20 decay values between $\rho=1.00$ and $\rho=0.78$,
 concentrated near the transition where the weakest retained signal becomes
 comparable to the empirical perturbation scale.
-They induce a dense sweep of population conditioning values
+These decay values induce a dense sweep of population conditioning values
 $\kappa_H^2\in[3.30{\times}10^{-3},1]$. Representative points are:
 \[
 \begin{array}{c|ccc}
@@ -353,22 +343,22 @@ $\kappa_H^2\in[3.30{\times}10^{-3},1]$. Representative points are:
 The trace column is omitted because it is constant by construction. Since
 $\widetilde Z=\Sigma_{ZZ}^{-1/2}Z$ is Gaussian in this generator, the intrinsic
 covariance of $P_K=T_K\widetilde Z$ on its rank-$d$ range has eigenvalues
-$\lambda_i(H_K)$. Thus panel (a) of \cref{fig:predictive-isotropy} is directly
-the covariance spectrum appearing in \cref{lem:predictive_isotropy}. Panel (b)
-plots the two quantities that determine the perturbative denominator:
+$\lambda_i(H_K)$. Panel (a) of \cref{fig:predictive-isotropy} is the covariance
+spectrum appearing in \cref{lem:predictive_isotropy}. Panel (b) plots the two
+quantities that determine the perturbative denominator:
 $\sigma_d(T_K)$ and $\|\widehat T_K-T_K\|_{\mathrm{op}}$. Panel (c) compares
 the observed subspace recovery error with the Wedin bound
 $\|\widehat T_K-T_K\|_{\mathrm{op}}/
 (\sigma_d(T_K)-\|\widehat T_K-T_K\|_{\mathrm{op}})$, clipped at one when the
 denominator is nonpositive. The small-$\kappa_H^2$ settings intentionally enter
-this vacuous-bound regime; they show the transition from perturbative recovery
-to the boundary where weak directions begin to become difficult to recover. In
-the current ten-seed run, 16 of the 20 spectrum settings have a positive
-perturbative denominator for every seed, and 10 of 20 satisfy the half-gap
-diagnostic for every seed.
+this vacuous-bound regime. These settings mark the transition from
+perturbative recovery to the boundary where weak directions become difficult to
+recover. In the current ten-seed run, 16 of the 20 spectrum settings have a
+positive perturbative denominator for every seed, and 10 of 20 satisfy the
+half-gap diagnostic for every seed.
 
 \paragraph{Gauge-factorization diagnostic.}
-The gauge diagnostic directly targets \cref{subsubsec:gauge_factorization}.
+The gauge diagnostic tests \cref{subsubsec:gauge_factorization}.
 For each seed, we construct the population whitened predictor
 $T_K=U_KS_KV_K^\top$ and compare identity, random orthogonal, anisotropic
 diagonal, and nonlinear Gaussianizing gauges under both Gaussian and
@@ -379,33 +369,36 @@ gauge $G$, the synthetic encoder and predictor are
     \qquad
     F_G(\cdot)=U_KS_KG^{-1}(\cdot).
 \]
-Panel (a) of \cref{fig:gauge-factorization} verifies
+Panel (a) of \cref{fig:gauge-factorization} checks
 \cref{lem:gauge_invariance}: all gauges reproduce the same end-to-end
 prediction up to numerical precision. Panel (b) checks the covariance part of
 \cref{thm:subsumes_cov_isotropy}: identity and orthogonal gauges remain
 covariance-isotropic up to finite-sample error for both context laws, while the
 diagonal gauge is deliberately anisotropic. Panel (c) reports a
-Cramer--Wold-style projected standard-normal discrepancy. For Gaussian context,
+Cramer-Wold-style projected standard-normal discrepancy. For Gaussian context,
 the identity/SVD-aligned gauge already realizes the linear-Gaussian special
 case in \cref{cor:linear_gauss}. For Laplace context, identity remains
 covariance-isotropic but not Gaussian; the nonlinear Gaussianizing gauge maps
 the intrinsic coordinates to standard-normal marginals and sharply reduces the
-projected discrepancy, illustrating the role of the nonlinear gauge in
+projected discrepancy. This matches the nonlinear gauge construction in
 \cref{thm:subsumes_gaussian_isotropy}.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_gauge_factorization.pdf}
-    \caption{Gauge-factorization diagnostic. Gauge changes preserve prediction
+    \caption{\small Gauge-factorization diagnostic. Gauge changes preserve prediction
     while changing encoder covariance and Gaussianity diagnostics.}
     \label{fig:gauge-factorization}
 \end{figure}
 
+\subsection{Real-Image Regularizer Details}
+\label{app:real-image-regularizer-details}
+
 \paragraph{Regularization implication.}
-The revised theory proposes a prediction-aware analogue of embedding-side
-Gaussian regularization. Standard embedding regularizers act on the marginal
-pushforward $\mathcal L(AZ)$, whereas the theory-facing object here is the
-intrinsic end-to-end predictive pushforward from
+The theory motivates a prediction-aware analogue of embedding Gaussian
+regularization. Standard embedding regularizers act on the marginal pushforward
+$\mathcal L(AZ)$. The theory-facing object here is the intrinsic end-to-end
+predictive pushforward from
 \cref{lem:predictive_isotropy}. For a minibatch, project the learned predicted
 outputs onto the learned rank-$d$ predictive range and collect the intrinsic
 coordinates into rows $\widehat p_n^{\mathrm{int}}$ of
@@ -414,7 +407,7 @@ coordinates into rows $\widehat p_n^{\mathrm{int}}$ of
 \]
 The proposed regularizer samples random directions
 $\mathcal A\subset\mathbb S^{d-1}$ and averages a univariate Gaussianity test,
-such as the Epps--Pulley statistic, over the projected samples:
+such as the Epps-Pulley statistic, over the projected samples:
 \[
     \mathcal R_{\mathrm{PI}}(\widehat P^{\mathrm{int}};\mathcal A)
     =
@@ -422,12 +415,11 @@ such as the Epps--Pulley statistic, over the projected samples:
     \sum_{u\in\mathcal A}
     \mathcal T\!\left(\{u^\top \widehat p_n^{\mathrm{int}}\}_{n=1}^N\right).
 \]
-This is a Cramer--Wold-style, prediction-aware counterpart to SIGReg: it acts
+This is a Cramer-Wold-style, prediction-aware counterpart to SIGReg: it acts
 on intrinsic predictor outputs rather than encoder embeddings. Matching
 projected standard normals is stronger than the second-moment condition
 $H_K=\alpha I$, but it implies the isotropic predictive covariance targeted by
-\cref{lem:predictive_isotropy}. A practical nonlinear objective could therefore
-take the schematic form
+\cref{lem:predictive_isotropy}. The nonlinear diagnostic uses the objective
 \[
     \mathcal L
     =
@@ -437,79 +429,99 @@ take the schematic form
     +
     \lambda_{\mathrm{pred}}\mathcal R_{\mathrm{PI}}.
 \]
-The first regularizer is task-agnostic and prevents marginal representation
-collapse; the second is task-conditioned and targets the predictive spectrum
-appearing in the finite-sample recovery and excess-risk bounds. The gauge
-results in the theory explain why a sufficiently strong prediction-aware
-regularizer can subsume encoder-side isotropy at the population level; in
-practice, the two terms may still be combined for optimization and collapse
-prevention.
+The embedding term prevents marginal representation collapse. The prediction
+term targets the predictive spectrum appearing in the finite-sample recovery
+and excess-risk bounds. The gauge results explain why a sufficiently strong
+prediction-aware regularizer can subsume Encoder isotropy at the population
+level. The combined objective tests whether the Encoder term adds useful
+finite-sample optimization or collapse-prevention effects.
 
-The experiment in \cref{fig:predictive-isotropy} validates the second-moment
-spectral mechanism behind this proposal. The next diagnostic tests the
-corresponding regularizer in a learned nonlinear predictor.
+\paragraph{Real-image regularizer experiments.}
+We run two learned nonlinear left-to-right digit-completion diagnostics. In
+both cases, the context is the left half of the image and the target is the
+right half. The small-data \texttt{sklearn} task uses $8\times8$ handwritten
+digits, an MLP encoder, a $16$-dimensional predictor representation, and a
+linear pixel head. The scaled MNIST task uses $28\times28$ images, a
+convolutional encoder, a $128$-dimensional predictor representation, and a
+spatial convolutional decoder. We identify the predictor representation with
+the finite-network analogue of $\widehat P_K^{\mathrm{int}}$ in
+\eqref{eq:predictive_isotropy_regularizer}; the pixel head or decoder is the
+readout used for target prediction.
 
-\paragraph{Digits regularizer experiment.}
-We add a low-label real-data training diagnostic on the
-\texttt{sklearn} handwritten-digits dataset. The context is the left half of
-the $8\times 8$ digit image and the target is the right half. A nonlinear
-encoder maps the context to a $16$-dimensional embedding; a predictor maps this
-embedding to a $16$-dimensional intrinsic prediction representation; a final
-linear head predicts the target pixels. We identify this predictor
-representation with the finite-network analogue of
-$\widehat P_K^{\mathrm{int}}$ in
-\eqref{eq:predictive_isotropy_regularizer}; the pixel head is only the readout
-used to evaluate target prediction. To make generalization rather than
-in-sample reconstruction the limiting factor, we train a high-capacity model on
-only an $8\%$ stratified training split and evaluate on the remaining examples.
-We compare four objectives: no regularizer, an encoder-only Gaussianity
-penalty, a prediction-only Gaussianity penalty, and a prediction-plus-encoder
-auxiliary condition. The projected-Gaussianity term combines the
-Cramer--Wold/Epps--Pulley statistic with a covariance-to-identity penalty, and
-is applied either to the encoder embedding or to the prediction representation.
-The prediction-plus-encoder condition is included as a control: the theory
-predicts that the prediction-side condition is the risk-relevant one, so adding
-an encoder-side auxiliary penalty should not be necessary for the main risk
+We compare four objectives: no regularizer, Encoder Gaussianity,
+prediction-side Gaussianity, and prediction-plus-encoder Gaussianity. The
+projected-Gaussianity term combines a Cramer-Wold/Epps-Pulley statistic with a
+covariance-to-identity penalty and is applied either to the encoder embedding or
+to the predictor representation. The combined condition is a control: if the
+prediction-side condition captures the risk-relevant pushforward, adding the
+Encoder auxiliary term should not be required for the main prediction
 effect.
 
-\Cref{fig:regularizer-digits} and \cref{tab:regularizer-digits-cost} show the
-result over ten deterministic seeds.
-Here MSE is the primary criterion. It is the mean squared error over right-half
-target pixels after normalizing digit intensities to $[0,1]$; it is not a
-percentage. The corresponding RMSE can be read as a fraction of the full
-gray-scale range.
-The Gaussianity score is only a diagnostic: it is a distance from projected
-standard-normal laws, so smaller values mean the regularizer has moved the
-intended distribution, but this score is not a substitute for test risk.
-Effective rank is likewise a conditioning diagnostic, not a standalone
-objective. In this harder setting, prediction-side regularization reduces test
-MSE from $9.23{\times}10^{-2}$ to
-$6.00{\times}10^{-2}$ and the train--test gap from $8.54{\times}10^{-2}$ to
-$2.00{\times}10^{-2}$. The same runs reduce predictive Gaussianity distance
-from $1.14{\times}10^{-1}$ to $4.33{\times}10^{-2}$ and raise predictive
-effective rank from $4.13$ to $6.41$. Encoder-side regularization also improves
-test MSE, but less strongly, and it does not improve the prediction-side
-Gaussianity distance. The prediction-only and prediction-plus-encoder
-conditions have nearly identical test MSE, which is the expected control outcome
-under the subsumption result. The timing panel makes the cost tradeoff explicit:
-prediction-side regularization takes $12.23$ seconds per seed on average,
-compared with $9.03$ seconds for no regularizer and $15.80$ seconds for the
-combined objective. Thus the prediction-side term gives essentially the same
-test risk as the combined condition at lower cost. This experiment is not meant
-to replace large-scale JEPA validation, but
-it does test the proposed regularizer inside an actual learned nonlinear
-predictor rather than a closed-form synthetic operator.
-\Cref{fig:regularizer-digits-samples} gives a qualitative view of the same
-task: the left half of each test digit is observed, and each method predicts the
-right half.
+MSE is the mean squared error over right-half target pixels after normalizing
+image intensities to $[0,1]$; it is not a percentage. RMSE is measured on the
+same gray-scale range. For MNIST, we also report foreground MSE over
+right-half pixels with intensity larger than $0.05$, because background pixels
+dominate the raw target-half average. The Gaussianity score is a diagnostic
+distance to projected standard-normal laws, and effective rank is a conditioning
+diagnostic; the primary outcome is still target prediction risk.
+
+\Cref{fig:regularizer-digits,fig:regularizer-mnist} and
+\cref{tab:regularizer-realdata} report the real-image diagnostics. On the
+low-label $8\times8$ task, prediction-side regularization reduces test MSE from
+$9.23{\times}10^{-2}$ to $6.00{\times}10^{-2}$ and train-test gap from
+$8.54{\times}10^{-2}$ to $2.00{\times}10^{-2}$. It reduces predictive
+Gaussianity distance from $1.14{\times}10^{-1}$ to $4.33{\times}10^{-2}$ and
+raises predictive effective rank from $4.13$ to $6.41$. The prediction-only and
+prediction-plus-encoder conditions have nearly identical test MSE; the combined
+condition is slower.
+
+The MNIST CNN diagnostic uses $10000$ training examples, the standard
+$10000$-example MNIST test split, $50$ epochs, batch size $256$, learning rate
+$3{\times}10^{-4}$ with cosine decay, weight decay $10^{-4}$, convolutional
+channels $(64,128,256)$, embedding dimension $256$, predictor dimension $256$,
+regularizer weight $0.08$, covariance weight $1.0$, mixed precision when CUDA
+is available, and $128$ random projection directions. In the ten-seed GPU run,
+prediction-side regularization improves test MSE from $3.68{\times}10^{-2}$ to
+$3.43{\times}10^{-2}$ and foreground MSE from $1.29{\times}10^{-1}$ to
+$1.19{\times}10^{-1}$. It reduces prediction-side Gaussianity distance from
+$3.24{\times}10^{-1}$ to $1.31{\times}10^{-2}$ and raises predictive effective
+rank from $5.86$ to $10.03$. The combined condition gives similar risk and the
+smallest train-test gap.
+\Cref{fig:regularizer-digits-samples,fig:regularizer-mnist-mlp-samples,fig:regularizer-mnist-cnn-samples}
+show completion examples: the left half of each held-out digit is observed, and
+each method predicts the right half.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_regularizer_digits.pdf}
-    \caption{Digit regularizer diagnostics. Prediction-side regularization
-    gives the best pixel-MSE/generalization tradeoff and improves
-    prediction-side conditioning diagnostics.}
+    \caption{\small $8\times8$ digit regularizer diagnostic. Prediction-side
+    regularization improves target-half MSE and prediction-side conditioning.}
     \label{fig:regularizer-digits}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/exp_regularizer_mnist_gpu.pdf}
+    \caption{\small MNIST CNN regularizer diagnostic. The GPU-scale stress test
+    reports target-half risk, foreground risk, prediction-side Gaussianity, and
+    training time.}
+    \label{fig:regularizer-mnist}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/exp_regularizer_digits_samples.pdf}
+    \caption{\small $8\times8$ digit completion examples. The left half is
+    observed, and each method predicts the right half.}
+    \label{fig:regularizer-digits-samples}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/exp_regularizer_mnist_samples.pdf}
+    \caption{\small MNIST MLP completion examples. The left half is observed,
+    and each method predicts the right half.}
+    \label{fig:regularizer-mnist-mlp-samples}
 \end{figure}
 
 % NOTE: In a nonlinear JEPA implementation, \widehat P can be taken as the
@@ -525,8 +537,10 @@ right half.
 % an independent proof of a global Lipschitz constant L.
 
 \paragraph{Reproducibility.}
-All Phase-1 experiments are run with ten deterministic seeds. The full
-synthetic suite can be reproduced with
+Synthetic experiments, the $8\times8$ digit regularizer diagnostic, and the
+MNIST CNN regularizer diagnostic are run with ten deterministic seeds. The
+synthetic suite and $8\times8$ diagnostic can be reproduced
+with
 \[
     \texttt{python -m experiments.run\_all}
 \]
@@ -538,6 +552,10 @@ The qualitative digit reconstruction figure is generated separately with
 \[
     \texttt{python -m plots.plot\_regularizer\_digits\_samples}.
 \]
+The GPU-scale MNIST diagnostic can also be run directly with
+\[
+    \texttt{python -m experiments.exp\_regularizer\_mnist\_gpu}.
+\]
 The scripts write per-experiment CSV files, the combined result table, and the
 main and appendix PDF figures. Unit tests cover deterministic generation,
 OLS/RRR behavior, rank constraints, subspace metrics, CSV schema, and
@@ -545,7 +563,9 @@ figure-reference existence.
 
 \paragraph{Visualization choices.}
 Finite-sample estimates are plotted as solid curves with standard-error bands.
-Population predictions are plotted as dashed gray curves.
+Population predictions are plotted as dashed curves with standard-error bands
+when the population quantity varies across deterministic seeds. Bar charts show
+standard-error caps and seed-level points.
 For the bottleneck spectral-tail-ratio panel, values below $10^{-4}$ are
 visually floored in the log-scale display to keep the super-threshold regime
 legible; this affects only the display, not the CSV values or computations.

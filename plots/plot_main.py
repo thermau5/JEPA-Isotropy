@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 from matplotlib.ticker import FixedLocator, FuncFormatter, MultipleLocator, NullFormatter
 import numpy as np
 import pandas as pd
@@ -26,6 +27,8 @@ TAIL_PLOT_FLOOR = 1e-1
 EMPIRICAL_MARKER_SIZE = 3.1
 EMPIRICAL_LINE_WIDTH = 1.75
 THEORY_LINE_WIDTH = 1.75
+EMPIRICAL_BAND_ALPHA = 0.16
+THEORY_BAND_ALPHA = 0.10
 GUIDE_STYLE = {
     "color": GRAY,
     "linestyle": ":",
@@ -70,7 +73,7 @@ def line_with_band(
         data[mean_col] - sem,
         data[mean_col] + sem,
         color=color,
-        alpha=0.075,
+        alpha=EMPIRICAL_BAND_ALPHA,
         linewidth=0.0,
         zorder=max(1, zorder - 1),
     )
@@ -90,6 +93,7 @@ def dashed_theory(
     """Dashed population-value curve."""
 
     mean_col = f"{y}_mean"
+    sem_col = f"{y}_sem"
     values = data[mean_col]
     if floor is not None:
         values = values.clip(lower=floor)
@@ -103,6 +107,22 @@ def dashed_theory(
         label=label,
         zorder=zorder,
     )
+    if sem_col in data:
+        sem = data[sem_col].fillna(0.0)
+        lower = data[mean_col] - sem
+        upper = data[mean_col] + sem
+        if floor is not None:
+            lower = lower.clip(lower=floor)
+            upper = upper.clip(lower=floor)
+        ax.fill_between(
+            data[x],
+            lower,
+            upper,
+            color=THEORY,
+            alpha=THEORY_BAND_ALPHA,
+            linewidth=0.0,
+            zorder=max(0, zorder - 1),
+        )
 
 
 def line_with_band_logsafe(ax, data: pd.DataFrame, x: str, y: str, label: str) -> None:
@@ -150,7 +170,7 @@ def line_with_band_floor(
         lower,
         upper,
         color=color,
-        alpha=0.075,
+        alpha=EMPIRICAL_BAND_ALPHA,
         linewidth=0.0,
         zorder=max(1, zorder - 1),
     )
@@ -159,7 +179,7 @@ def line_with_band_floor(
 def style_axis(ax, xlabel: str, ylabel: str, panel: str) -> None:
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(panel, loc="left", fontsize=8.6, fontweight="bold", pad=1.5)
+    ax.set_title(panel, loc="left", fontsize=8.6, fontweight="normal", pad=1.5)
     ax.grid(axis="both", color=GRID, linewidth=0.45, alpha=0.9)
     ax.tick_params(axis="both", length=2.5, width=0.65, color=GRAY, pad=2.0)
 
@@ -287,16 +307,16 @@ def configure_matplotlib() -> None:
 
     plt.rcParams.update(
         {
-            "font.family": "Times New Roman",
-            "font.serif": ["Times New Roman"],
-            "font.weight": "bold",
-            "mathtext.fontset": "stix",
-            "mathtext.default": "bf",
+            "font.family": "DejaVu Sans",
+            "font.sans-serif": ["DejaVu Sans"],
+            "font.weight": "normal",
+            "mathtext.fontset": "dejavusans",
+            "mathtext.default": "regular",
             "font.size": 8.6,
             "axes.labelsize": 8.8,
             "axes.titlesize": 9.0,
-            "axes.labelweight": "bold",
-            "axes.titleweight": "bold",
+            "axes.labelweight": "normal",
+            "axes.titleweight": "normal",
             "xtick.labelsize": 8.0,
             "ytick.labelsize": 8.0,
             "legend.fontsize": 8.0,
@@ -464,12 +484,12 @@ def plot_post_saturation_frame(
         eigen_ylabel = r"Eigenvalues of $T_K^\top T_K$"
         kappa_ylabel = r"$\kappa_K^2(T_K)$"
         effdim_ylabel = r"$\mathrm{effdim}(T_K)$"
-        stability_label = r"Empirical $L$ times subspace error"
+        stability_label = r"Lipschitz bound"
     else:
         eigen_ylabel = r"Eigenvalues of $G_K$"
         kappa_ylabel = r"$\kappa_K^2=\lambda_d/\lambda_1$"
         effdim_ylabel = r"$\mathrm{effdim}(\Sigma_{YX})$"
-        stability_label = r"Empirical $L$ times subspace error"
+        stability_label = r"Lipschitz bound"
     summary = mean_sem(
         frame,
         "K",
@@ -506,7 +526,8 @@ def plot_post_saturation_frame(
     summary["empirical_l"] = empirical_l_bound
     summary["concentration_coverage"] = concentration_coverage
     summary.to_csv(summary_path, index=False)
-    fig, axes_grid = plt.subplots(2, 3, figsize=(7.1, 4.05), constrained_layout=True)
+    fig, axes_grid = plt.subplots(2, 3, figsize=(7.1, 3.3), constrained_layout=True)
+    fig.set_constrained_layout_pads(w_pad=0.02, h_pad=0.015, wspace=0.02, hspace=0.028)
     axes = list(axes_grid.ravel())
     dashed_theory(
         axes[0],
@@ -652,6 +673,8 @@ def plot_post_saturation_frame(
         ticks = [int(x) for x in summary["K"] if x in {64, 128, 256, 512}]
         ax.set_xticks(ticks)
         ax.set_xticklabels([str(x) for x in ticks])
+    for ax in axes[:3]:
+        ax.tick_params(axis="x", which="major", bottom=True, labelbottom=True)
     axes[0].set_yscale("log")
     axes[3].set_yscale("log")
     axes[4].set_yscale("log")
@@ -674,6 +697,8 @@ def plot_post_saturation_frame(
         effdim_ylabel,
         "(c)",
     )
+    for ax in axes[:3]:
+        ax.xaxis.labelpad = -0.5
     style_axis(
         axes[3],
         "Target count $K$",
@@ -819,7 +844,21 @@ def plot_predictive_isotropy() -> None:
         ax.set_xscale("log")
     axes[1].set_yscale("log")
     axes[3].set_yscale("log")
-    add_axis_legend(axes[0])
+    legend = axes[0].legend(
+        frameon=True,
+        framealpha=0.82,
+        edgecolor=GRID,
+        facecolor="white",
+        loc="lower left",
+        ncol=1,
+        fontsize=5.1,
+        borderpad=0.12,
+        handlelength=0.95,
+        handletextpad=0.2,
+        labelspacing=0.1,
+        borderaxespad=0.18,
+    )
+    legend.get_frame().set_linewidth(0.45)
     add_axis_legend(axes[1])
     add_axis_legend(axes[2])
     add_axis_legend(axes[3])
@@ -885,7 +924,7 @@ def plot_regularizer_digits() -> None:
     frame = pd.read_csv(RESULTS / "exp_regularizer_digits.csv").copy()
     frame["generalization_gap"] = frame["test_mse"] - frame["train_mse"]
     order = ["baseline", "encoder_gaussian", "predictive_gaussian", "both"]
-    labels = ["None", "Enc. only", "Pred. only", "Pred.+Enc."]
+    labels = ["No reg.", "Encoder", "Predictive", "Pred. + Enc."]
     metrics = [
         "test_mse",
         "generalization_gap",
@@ -895,7 +934,7 @@ def plot_regularizer_digits() -> None:
     metrics.extend(["predictive_gaussianity_score", "predictive_effective_rank"])
     summary = frame.groupby("method")[metrics].agg(["mean", "sem"]).reindex(order)
     x = np.arange(len(order))
-    fig, axes = make_figure(ncols=len(metrics), figsize=(7.1, 2.2))
+    fig, axes = make_figure(ncols=len(metrics), figsize=(7.1, 2.3))
     colors = [GRAY, TEAL, BLUE, RED]
     ylabel_by_metric = {
         "test_mse": "Test pixel MSE",
@@ -918,10 +957,21 @@ def plot_regularizer_digits() -> None:
             capsize=2.0,
             width=0.62,
         )
-        ax.set_xticks(x, labels, rotation=25, ha="right")
-        style_axis(ax, "Regularizer", ylabel_by_metric[metric], panel)
+        ax.set_xticks([])
+        style_axis(ax, "", ylabel_by_metric[metric], panel)
         if metric == "predictive_gaussianity_score":
             ax.set_yscale("log")
+    handles = [Patch(facecolor=color, edgecolor="white", label=label) for color, label in zip(colors, labels)]
+    fig.legend(
+        handles=handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.16),
+        ncol=4,
+        frameon=False,
+        handlelength=1.0,
+        columnspacing=1.1,
+        handletextpad=0.35,
+    )
     save_figure(fig, FIGURES / "exp_regularizer_digits.pdf")
 
 

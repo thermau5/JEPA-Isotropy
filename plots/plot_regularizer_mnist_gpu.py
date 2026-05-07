@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
+from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 
@@ -16,89 +15,74 @@ if str(REPO_ROOT) not in sys.path:
 
 from experiments.common import ROOT
 from plots.plot_main import (
-    BLUE, TEAL, GOLD, RED, GRAY, GRID, LIGHT_SHADE,
-    configure_matplotlib,
+    BLUE,
+    FIGURES,
+    GRAY,
+    RED,
+    RESULTS,
+    TEAL,
+    make_figure as make_bar_figure,
+    save_figure,
+    style_axis,
 )
 
-RESULTS = ROOT / "results" / "exp_regularizer_mnist_gpu.csv"
-FIGURES = ROOT / "figures"
 
-METHOD_ORDER = ["baseline", "encoder_gaussian", "predictive_gaussian", "both"]
-METHOD_LABELS = ["No reg.", "Enc. reg.", "Pred. reg.", "Pred.+Enc."]
-METHOD_COLORS = [GRAY, TEAL, GOLD, RED]
-SCATTER_ALPHA = 0.45
-SCATTER_SIZE = 14
-BAR_WIDTH = 0.55
-CAP_SIZE = 2.5
+CSV_PATH = RESULTS / "exp_regularizer_mnist_gpu.csv"
+OUTPUT_PATH = FIGURES / "exp_regularizer_mnist_gpu.pdf"
 
 
-def _bar_panel(
-    ax: plt.Axes,
-    means: np.ndarray,
-    sems: np.ndarray,
-    all_seeds: list[np.ndarray],
-    ylabel: str,
-    title: str,
-    highlight_split: bool = True,
-) -> None:
-    xs = np.arange(len(METHOD_ORDER))
-    for i, (m, s, vals, color) in enumerate(zip(means, sems, all_seeds, METHOD_COLORS)):
-        ax.bar(xs[i], m, width=BAR_WIDTH, color=color, alpha=0.80, zorder=3)
-        ax.errorbar(xs[i], m, yerr=s, fmt="none", color="black",
-                    linewidth=0.9, capsize=CAP_SIZE, capthick=0.9, zorder=4)
-        jitter = np.random.default_rng(i).uniform(-0.12, 0.12, size=len(vals))
-        ax.scatter(xs[i] + jitter, vals, color=color, s=SCATTER_SIZE,
-                   alpha=SCATTER_ALPHA, zorder=5, linewidths=0.0)
-
-    if highlight_split:
-        # shade to visually separate {no-reg, enc} from {pred, both}
-        ax.axvspan(1.5, 3.6, color=GOLD, alpha=0.055, zorder=0)
-
-    ax.set_xticks(xs)
-    ax.set_xticklabels(METHOD_LABELS, fontsize=7.5)
-    ax.set_ylabel(ylabel)
-    ax.set_title(title, pad=4)
-    ax.tick_params(axis="x", length=0)
-    ax.set_xlim(-0.55, len(METHOD_ORDER) - 0.45)
-    ylo = ax.get_ylim()[0]
-    ax.set_ylim(bottom=max(0.0, ylo - 0.005))
-    for spine in ("top", "right"):
-        ax.spines[spine].set_visible(False)
-    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.3f"))
-    ax.tick_params(axis="y", length=2.5, width=0.65, labelsize=7.5)
-    ax.grid(axis="y", color=GRID, linewidth=0.5, alpha=0.7, zorder=0)
-
-
-def make_figure(csv_path: Path = RESULTS, output_path: Path = FIGURES / "exp_regularizer_mnist_gpu.pdf") -> None:
-    df = pd.read_csv(csv_path)
-    configure_matplotlib()
-
-    panels = [
-        ("test_mse",                    "MSE",          "(a) Test MSE (all pixels)"),
-        ("fg_mse",                      "MSE",          "(b) Foreground MSE (digit pixels)"),
-        ("gap",                         "MSE",          "(c) Train–test gap"),
-        ("predictive_gaussianity_score","Score",        "(d) Pred. Gaussianity score"),
-        ("predictive_effective_rank",   "Eff. rank",    "(e) Pred. effective rank"),
-        ("train_seconds",               "Seconds",      "(f) Training time (s)"),
+def make_figure(csv_path: Path = CSV_PATH, output_path: Path = OUTPUT_PATH) -> None:
+    frame = pd.read_csv(csv_path).copy()
+    order = ["baseline", "encoder_gaussian", "predictive_gaussian", "both"]
+    labels = ["No reg.", "Encoder", "Predictive", "Pred. + Enc."]
+    metrics = [
+        "test_mse",
+        "fg_mse",
+        "gap",
+        "predictive_gaussianity_score",
+        "predictive_effective_rank",
     ]
-
-    fig, axes = plt.subplots(2, 3, figsize=(6.5, 4.0), constrained_layout=True)
-    axes_flat = axes.flatten()
-
-    for ax, (col, ylabel, title) in zip(axes_flat, panels):
-        means, sems, all_seeds = [], [], []
-        for method in METHOD_ORDER:
-            vals = df[df["method"] == method][col].values
-            means.append(vals.mean())
-            sems.append(vals.std(ddof=1) / np.sqrt(len(vals)))
-            all_seeds.append(vals)
-        _bar_panel(ax, np.array(means), np.array(sems), all_seeds,
-                   ylabel=ylabel, title=title, highlight_split=True)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path, bbox_inches="tight", pad_inches=0.02)
-    plt.close(fig)
-    print(f"Saved: {output_path}")
+    summary = frame.groupby("method")[metrics].agg(["mean", "sem"]).reindex(order)
+    x = np.arange(len(order))
+    fig, axes = make_bar_figure(ncols=len(metrics), figsize=(7.1, 2.3))
+    colors = [GRAY, TEAL, BLUE, RED]
+    ylabel_by_metric = {
+        "test_mse": "Test pixel MSE",
+        "fg_mse": "Foreground pixel MSE",
+        "gap": "Train-test MSE gap",
+        "predictive_gaussianity_score": "Gaussianity distance",
+        "predictive_effective_rank": "Predictive effective rank",
+    }
+    panels = ["(a)", "(b)", "(c)", "(d)", "(e)"]
+    for ax, metric, panel in zip(axes, metrics, panels):
+        means = summary[(metric, "mean")].to_numpy()
+        sems = summary[(metric, "sem")].fillna(0.0).to_numpy()
+        ax.bar(
+            x,
+            means,
+            yerr=sems,
+            color=colors,
+            edgecolor="white",
+            linewidth=0.6,
+            capsize=2.0,
+            width=0.62,
+        )
+        ax.set_xticks([])
+        style_axis(ax, "", ylabel_by_metric[metric], panel)
+        if metric == "predictive_gaussianity_score":
+            ax.set_yscale("log")
+    handles = [Patch(facecolor=color, edgecolor="white", label=label) for color, label in zip(colors, labels)]
+    fig.legend(
+        handles=handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.16),
+        ncol=4,
+        frameon=False,
+        handlelength=1.0,
+        columnspacing=1.1,
+        handletextpad=0.35,
+    )
+    save_figure(fig, output_path)
 
 
 if __name__ == "__main__":

@@ -5,162 +5,183 @@
 % claims and defers implementation details to the appendix file
 % paper/experiments_appendix.tex.
 
+\subsection{Synthetic Experiment}
+\label{subsec:synthetic-experiments}
+
 \paragraph{Setup.}
-We test the theory in a frozen-teacher linear-Gaussian setting where the ground
-truth predictive subspace is known. Each example has latent state
-$s\sim\mathcal N(0,I_{r_\star})$, context
-$z=Cs+\sigma_z\epsilon_z$, and stacked targets
-$Y=(y_1^\top,\ldots,y_K^\top)^\top$ with
-$y_k=A_ks+\sigma_y\epsilon_k$. The context map $C$ is fixed, so the experiments
-isolate the effect of target structure, bottleneck rank, and finite-sample
-conditioning. For rank-growth diagnostics we use the stacked covariance
-$\Sigma_{YZ}$; for bottleneck and post-saturation diagnostics we use the
-whitened raw predictor $T_K=\Sigma_{YZ}^{(K)}\Sigma_{ZZ}^{-1/2}$.
+We first use frozen-teacher linear experiments with known population operators
+to isolate the mechanisms in the theory from nonlinear optimization effects.
+Full setup details are in \cref{app:synthetic-experimental-details}.
 
-\paragraph{Models.}
-We compare the unconstrained ordinary least-squares predictor with its
-rank-$d$ reduced-rank regression (RRR) truncation. The RRR rank $d$ plays the
-role of the JEPA embedding bottleneck. This removes optimization and encoder
-dynamics, letting each experiment target one mechanism from the theory.
-
-\paragraph{Data.}
-The target stack is constructed to separate complementarity, capacity, and
-conditioning. We use ten deterministic seeds and report means with
-standard-error bands. \Cref{tab:experiment-summary} summarizes the main
-diagnostics; exact generator details and appendix-only controls are in
-\cref{app:experimental-details}.
-
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{lcccc}
-\hline
-Experiment & Sweep & Fixed quantities & Main outcome & Figure \\
-\hline
-$K$-saturation & $K$ & $D_x=160,\ d=r_\star=64$ & target-count saturation & \cref{fig:k-saturation} \\
-Heterogeneity & $\widehat{\lambda}_{\mathrm{het}}$ & $D_x=64,\ K=48,\ d=24$ & finite-sample recovery & \cref{fig:heterogeneity} \\
-Bottleneck & $d$ & $D_x=64,\ r_\star=24,\ K=48$ & spectral-tail floor & \cref{fig:bottleneck} \\
-Post-saturation & $K$ & $D_x=160,\ r_\star(K)=d=64$ & relative conditioning & \cref{fig:post-saturation} \\
-Predictive isotropy & $\kappa_H^2$ of $H_K$ & $D_x=64,\ r_\star=d=K=24$ & fixed-trace isotropy & \cref{fig:predictive-isotropy} \\
-\hline
-\end{tabular}
-\caption{Main synthetic experiment suite. Appendix diagnostics additionally test
-embedding-versus-predictive isotropy and gauge factorization.}
-\label{tab:experiment-summary}
-\end{table}
+\paragraph{Models and baselines.}
+The learned model is the finite-sample RRR solution. Rank $d$ instantiates the
+JEPA bottleneck. Population operators and unconstrained OLS serve as baselines.
 
 \paragraph{Metrics.}
-All paper-facing risk panels use the average per-target normalization of
-$\mathcal R_K$ in \eqref{eq:per_target_risk}, so risks are comparable when
-$K$ changes. We report the quantities appearing in the theory: recovered rank,
-subspace error, heterogeneity $\lambda_{\mathrm{het}}$, relative conditioning
-$\kappa_K^2$, effective dimension, and spectral-tail ratios. Population values
-computed from the known operators are shown as dashed curves; finite-sample
-estimates are shown as solid curves. The appendix defines the effective-rank
-thresholds, fixed-reference-stack probes, calibrated constants, and
-Wedin-bound diagnostics.
-
-\paragraph{Baselines.}
-The main baseline is the population counterpart of each finite-sample metric:
-it is computed directly from the known operators, without sampling noise. For
-bottleneck risk, unconstrained OLS is the reference model and the predicted
-floor is the spectral tail beyond the retained rank.
+Risk panels use the per-target normalization in \eqref{eq:per_target_risk}.
+Diagnostics match the quantities in \cref{thm:unified_risk_decomposition} and
+the rank, heterogeneity, and conditioning results. Definitions are in
+\cref{app:synthetic-experimental-details}.
 
 \paragraph{Results.}
-\Cref{fig:k-saturation,fig:heterogeneity,fig:bottleneck} validate the
-pre-saturation and bottleneck mechanisms. Complementary targets increase
-recovered rank and lower per-target MSE until rank saturates. Larger measured
-$\widehat{\lambda}_{\mathrm{het}}$ improves finite-sample recovery. Sweeping
-$d$ confirms the capacity prediction: model rank follows
-$\min\{d,r_\star\}$ and excess risk tracks the spectral-tail floor.
+The appendix figures
+\cref{fig:k-saturation,fig:heterogeneity,fig:bottleneck} validate the
+pre-saturation and bottleneck claims. Complementary target stacks increase
+predictive rank, larger $\lambda_{\mathrm{het}}$ improves finite-sample
+identifiability, and the rank-$d$ bottleneck induces the spectral-tail floor
+predicted by \cref{prop:rank_growth,prop:heterogeneity_identifiability,prop:capacity_lower_bound}.
+The main synthetic diagnostic is \cref{fig:post-saturation}. It tests
+\cref{prop:post_saturation_risk} in the regime $r_\star(K)=d$, where
+additional target blocks cannot create new rank. The experiment allocates new
+blocks to weak predictive directions. As
+$\kappa_K^2=\lambda_d(H_K)/\lambda_1(H_K)$ increases, the observed excess risk
+and per-target risk decrease. \Cref{fig:predictive-isotropy} tests
+\cref{lem:predictive_isotropy,thm:predictive_isotropy_opt}: at fixed rank and
+trace, flatter spectra of $H_K=T_K^\top T_K$ improve recovery and reduce the
+balanced-reference-stack excess risk. The gauge-factorization diagnostic in
+\cref{fig:gauge-factorization} checks that the encoder-isotropy claims in
+\cref{subsubsec:gauge_factorization} are factorization effects rather than new
+end-to-end prediction constraints.
 
-\Cref{fig:post-saturation} isolates the second, finite-sample saturation
-mechanism. Here $r_\star(K)=d$ throughout, so additional targets cannot create
-new rank. They still help when they improve the relative conditioning
-$\kappa_K^2=\lambda_d(H_K)/\lambda_1(H_K)$ of the already accessible predictive
-directions. As $\kappa_K^2$ increases, subspace error, excess risk, and
-finite-sample risk decrease; the half-gap and calibrated-bound checks are
-reported in \cref{app:experimental-details}.
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.97\linewidth]{figures/exp_post_saturation.pdf}
+    \vspace{-0.6em}
+    \caption{\small \textbf{Post-saturation conditioning.} Given $r_\star(K)=d$,
+    allocating targets to weak directions increases $\kappa_K^2$ and reduces
+    excess risk and per-target risk.
+    Panel (d) plots the calibrated Lipschitz bound
+    $\widehat L\|\sin\Theta_T\|_{\mathrm{op}}$.}
+    \label{fig:post-saturation}
+    \vspace{-2em}
+\end{figure}
 
-\Cref{fig:predictive-isotropy} tests the fixed-trace isotropy prediction. With
-rank and $\operatorname{tr}(H_K)$ fixed, only the eigenvalue profile of
-$H_K=T_K^\top T_K$ changes. Consistent with
-\cref{lem:predictive_isotropy,thm:predictive_isotropy_opt}, flatter spectra
-increase the weakest retained signal relative to perturbation, reduce
-$\|\sin\Theta_T\|_{\mathrm{op}}$, and lower the balanced-reference-stack excess
-MSE. Appendix diagnostics show that this predictive isotropy is distinct from
-embedding isotropy, and that the gauge-factorization claims in
-\cref{subsubsec:gauge_factorization} hold under both Gaussian and non-Gaussian
-contexts.
-Finally, \cref{fig:regularizer-digits-samples} visualizes the real-image
-digit-half prediction task, and \cref{tab:regularizer-digits-cost} reports
-the corresponding ten-seed quantitative diagnostic. The proposed
-prediction-aware regularizer reduces low-label target-half pixel MSE and the
-train--test gap while also improving the prediction-side Gaussianity and
-covariance-balance diagnostics.
+\subsection{Realistic Experiment}
+\label{subsec:realistic-regularizer-experiments}
+
+\paragraph{Setup.}
+We test the practical regularizer~\eqref{eq:predictive_isotropy_regularizer}
+in learned nonlinear image inpainting tasks. In both tasks the context is the
+left half of a digit image and the target is the right half.
+\Cref{fig:regularizer-mnist-cnn-samples} shows the task.
+
+\paragraph{Data.}
+The small-data diagnostic uses the \texttt{sklearn} $8\times8$ digit dataset.
+The scaled diagnostic uses standard $28\times28$ MNIST. All pixels are
+normalized to $[0,1]$.
+
+\paragraph{Models.}
+The small-data task uses an MLP encoder-predictor, and MNIST uses a
+convolutional encoder-decoder. The prediction-side regularizer is applied to
+the predictor representation as in \eqref{eq:predictive_isotropy_regularizer};
+architecture and optimizer details are in
+\cref{app:real-image-regularizer-details}.
+
+\paragraph{Baselines.}
+We compare four objectives: no regularization, Encoder Gaussianity,
+prediction-side Gaussianity, and their combination. Encoder Gaussianity is the
+standard representation-side control. Prediction-side Gaussianity is our
+theory-motivated regularizer in
+\eqref{eq:predictive_isotropy_regularizer}, and the combined objective is an
+ablation testing whether Encoder Gaussianity improves on prediction-side
+Gaussianity.
+
+\paragraph{Metrics.}
+We report target-half pixel MSE and RMSE. For MNIST we also
+report foreground MSE, computed on non-background right-half pixels as most
+right-half pixels are background. Gaussianity and effective-rank diagnostics are
+reported in \cref{fig:regularizer-digits,fig:regularizer-mnist}; prediction
+risk is the primary outcome.
+
+\paragraph{Results.}
+\Cref{fig:regularizer-mnist-cnn-samples} visualizes the digit-half prediction task,
+and \cref{tab:regularizer-realdata} reports the regularizer
+diagnostics. Additional completion examples are shown in
+\cref{fig:regularizer-digits-samples,fig:regularizer-mnist-mlp-samples}. On
+the low-label $8\times 8$ digit task, prediction-side
+regularization reduces test MSE from $9.23{\times}10^{-2}$ to
+$6.00{\times}10^{-2}$ and train--test gap from $8.54{\times}10^{-2}$ to
+$2.00{\times}10^{-2}$. On the scaled MNIST task, prediction-side regularization
+improves test MSE from $3.68{\times}10^{-2}$ to $3.43{\times}10^{-2}$ and
+foreground MSE from $1.29{\times}10^{-1}$ to $1.19{\times}10^{-1}$. The
+combined objective adds little, consistent with the subsumption view in
+\cref{thm:subsumes_cov_isotropy,thm:subsumes_gaussian_isotropy}.
 
 \begin{table}[t]
 \centering
-\small
-\begin{tabular}{lcccc}
+\caption{\small \textbf{Real-image regularizer diagnostics.} MSE and gap columns are reported in
+$10^{-2}$ units, and RMSE is reported as a percentage of the normalized $[0,1]$
+pixel range. Gap is test MSE minus train MSE. Foreground MSE is reported only
+for MNIST, where background pixels dominate the right-half target.}
+\label{tab:regularizer-realdata}
+% \vspace{-0em}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{llccccc}
 \hline
-Objective & Test MSE & Test RMSE & Gap & Time \\
+Task & Objective & Test MSE & RMSE (\%) & Test/Train Gap & FG MSE & Time \\
 \hline
-No reg. &
-$0.0923{\pm}0.0017$ &
-$0.304{\pm}0.003$ &
-$0.0854{\pm}0.0017$ &
+$8{\times}8$ digits & No reg. &
+$9.23{\pm}0.17$ &
+$30.4{\pm}0.3$ &
+$8.54{\pm}0.17$ &
+- &
 $9.03{\pm}0.20$ s \ $(1.00{\times})$ \\
-Enc. reg. &
-$0.0786{\pm}0.0013$ &
-$0.280{\pm}0.002$ &
-$0.0629{\pm}0.0014$ &
+$8{\times}8$ digits & Enc. reg. &
+$7.86{\pm}0.13$ &
+$28.0{\pm}0.2$ &
+$6.29{\pm}0.14$ &
+- &
 $12.55{\pm}0.11$ s \ $(1.39{\times})$ \\
-Pred. reg. &
-$\mathbf{0.0600{\pm}0.0003}$ &
-$\mathbf{0.245{\pm}0.001}$ &
-$\mathbf{0.0200{\pm}0.0007}$ &
+$8{\times}8$ digits & Pred. reg. &
+$\mathbf{6.00{\pm}0.03}$ &
+$\mathbf{24.5{\pm}0.1}$ &
+$\mathbf{2.00{\pm}0.07}$ &
+- &
 $12.23{\pm}0.04$ s \ $(1.35{\times})$ \\
-Pred.+Enc. &
-$0.0609{\pm}0.0004$ &
-$0.247{\pm}0.001$ &
-$0.0227{\pm}0.0008$ &
+$8{\times}8$ digits & Pred.+Enc. &
+$6.09{\pm}0.04$ &
+$24.7{\pm}0.1$ &
+$2.27{\pm}0.08$ &
+- &
 $15.80{\pm}0.13$ s \ $(1.75{\times})$ \\
 \hline
+MNIST CNN & No reg. &
+$3.68{\pm}0.02$ &
+$19.19{\pm}0.04$ &
+$2.81{\pm}0.05$ &
+$12.90{\pm}0.07$ &
+$69.52{\pm}4.23$ s \ $(1.00{\times})$ \\
+MNIST CNN & Enc. reg. &
+$3.65{\pm}0.02$ &
+$19.11{\pm}0.05$ &
+$2.68{\pm}0.05$ &
+$12.75{\pm}0.07$ &
+$55.39{\pm}0.13$ s \ $(0.80{\times})$ \\
+MNIST CNN & Pred. reg. &
+$\mathbf{3.43{\pm}0.02}$ &
+$\mathbf{18.53{\pm}0.04}$ &
+$2.13{\pm}0.06$ &
+$\mathbf{11.92{\pm}0.06}$ &
+$53.98{\pm}0.07$ s \ $(0.78{\times})$ \\
+MNIST CNN & Pred.+Enc. &
+$3.47{\pm}0.01$ &
+$18.63{\pm}0.04$ &
+$\mathbf{2.12{\pm}0.05}$ &
+$12.06{\pm}0.05$ &
+$39.08{\pm}4.30$ s \ $(0.56{\times})$ \\
+\hline
 \end{tabular}
-\caption{Digit regularizer cost--performance. Metrics use right-half pixels
-normalized to $[0,1]$; time is per seed.}
-\label{tab:regularizer-digits-cost}
+    \vspace{-1.5em}
 \end{table}
 
-% NOTE: Theory labels in this section were checked against 3method (1).tex:
-% cor:post_saturation_relative_rate, eq:post_saturation_excess_risk_bound,
-% prop:post_saturation_risk, eq:post_saturation_half_gap,
-% lem:predictive_isotropy, thm:predictive_isotropy_opt,
-% subsubsec:gauge_factorization, thm:subsumes_cov_isotropy, and
-% thm:subsumes_gaussian_isotropy.
-
-% INTERPRETATION: The experiments support the theory; they do not replace the
-% formal statements. Keep causal language conservative in the final paper.
-
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{figures/exp_post_saturation.pdf}
-    \caption{Post-saturation conditioning. With $r_\star(K)=d$ fixed,
-    allocating targets to weak directions increases $\kappa_K^2$ and reduces
-    finite-sample risk diagnostics.}
-    \label{fig:post-saturation}
-\end{figure}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{figures/exp_regularizer_digits_samples.pdf}
-    \caption{Digit-half completions. Rows are held-out samples; columns show
+    \includegraphics[width=0.8\linewidth]{figures/exp_regularizer_mnist_gpu_samples.pdf}
+    \vspace{-0.8em}
+    \caption{\small \textbf{MNIST half-completions.} Rows are held-out samples; columns show
     context, ground truth, and candidate completions. Cell labels report
     per-sample target-half pixel MSE.}
-    \label{fig:regularizer-digits-samples}
+\label{fig:regularizer-mnist-cnn-samples}
+\vspace{-1.8em}
 \end{figure}
-
-% NOTE: Large-scale real-data JEPA validation remains planned rather than claimed.
-% A future version should add EMA target encoders, image masks, representation
-% probes, effective-rank diagnostics, and collapse tests.

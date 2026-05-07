@@ -1,9 +1,9 @@
 # BM-JEPA / Reduced-Rank Regression Experiment Summary
 
-This repository implements Phase 1 of the staged experiment plan: controlled
-linear-Gaussian experiments for the frozen-teacher BM-JEPA theory. Phase 2
-real-data JEPA validation is documented in `paper/experiments_section.tex` as
-the next empirical layer rather than run in this initial package.
+This repository implements the paper-facing experiment suite: controlled
+linear-Gaussian diagnostics for the frozen-teacher BM-JEPA theory plus
+small-scale real-image regularizer diagnostics for the prediction-aware
+Gaussianity objective.
 
 ## Claims Under Test
 
@@ -24,13 +24,17 @@ python -m experiments.exp_post_saturation
 python -m experiments.exp_predictive_isotropy
 python -m experiments.exp_gauge_factorization
 python -m experiments.exp_regularizer_digits
+python -m experiments.exp_regularizer_mnist
+python -m experiments.exp_regularizer_mnist_gpu
 python -m plots.plot_main
 python -m plots.plot_regularizer_digits_samples
 ```
 
 The per-experiment CSV files are written to `results/`, and the paper figures
-are written to `figures/`. To reproduce the complete suite and combined
-`results/results.csv`, run `python -m experiments.run_all`.
+are written to `figures/`. To reproduce the synthetic suite, the gauge
+diagnostic, the $8\times8$ regularizer diagnostic, and the combined
+`results/results.csv`, run `python -m experiments.run_all`. The MNIST MLP and
+GPU CNN diagnostics are run separately with the commands listed above.
 
 Plot convention: solid curves are finite-sample estimates averaged over seeds;
 dashed gray curves are population values computed from the known synthetic
@@ -79,14 +83,18 @@ operators.
   is unchanged while encoder covariance/Gaussianity follows the gauge choice.
 - `exp_regularizer_digits.pdf`: learned nonlinear regularizer experiment on
   real handwritten digits. The model predicts the right half of an image from
-  the left half and compares no regularizer, encoder-side Gaussianity,
-  prediction-side Gaussianity, and prediction-side plus encoder-side auxiliary
+  the left half and compares no regularizer, Encoder Gaussianity,
+  prediction-side Gaussianity, and prediction-side plus Encoder auxiliary
   Gaussianity. Pixel MSE is averaged over right-half target pixels normalized
   to `[0,1]`; it is not a percentage. The figure also reports wall-clock train
   time per run.
 - `exp_regularizer_digits_samples.pdf`: qualitative held-out digit
   reconstructions for the same task. Rows show held-out samples `4` and `8`;
   columns show context, target, and each method's predicted right half.
+- `exp_regularizer_mnist_gpu.pdf`: scaled MNIST 28x28 left-to-right completion
+  diagnostic with a GPU-scale CNN encoder and spatial decoder. Prediction-side
+  regularization gives the best target-half and foreground MSE, while the
+  combined objective gives a similar risk and the smallest train-test gap.
 
 ## Current Ten-Seed Readout
 
@@ -148,19 +156,6 @@ operators.
   (`0.1291` to `0.1294`) because rank and total predictive energy are fixed.
   This separates predictive isotropization from simply adding rank or signal
   energy.
-- **Embedding versus predictive isotropy:** supported as a controlled
-  distinction. The experiment varies an embedding covariance spectrum
-  independently from the predictive spectrum of `H_K`. Averaging over predictive
-  spectra, the reference-stack probe is essentially unchanged across embedding
-  decay values.
-  Changing the predictive spectrum, by contrast, changes the recovery
-  diagnostics directly. Spearman correlation is `0.00` for embedding entropy
-  gap versus the reference-stack probe in this controlled grid, while the predictive
-  spectrum controls the operator appearing in the recovery bound.
-  This should be read as a complementarity result, not an argument against
-  embedding isotropy: embedding-side regularization controls the marginal
-  representation law, while predictive isotropy controls the task-conditioned
-  end-to-end signal.
 - **Gauge factorization:** supported as an appendix diagnostic for Section
   3.6.1. Across ten seeds, all gauges preserve the same end-to-end prediction
   to numerical precision. Identity and random orthogonal gauges have small
@@ -179,9 +174,9 @@ operators.
   `8.54e-2` to `2.00e-2`; in RMSE units this is roughly `0.304` to `0.245`
   on the `[0,1]` pixel scale. The same runs reduce the predictive Gaussianity
   distance from about `1.14e-1` to `4.33e-2` and raise predictive effective rank
-  from about `4.13` to `6.41`. Encoder-side regularization also helps test MSE
+  from about `4.13` to `6.41`. Encoder regularization also helps test MSE
   but does not improve the prediction-side Gaussianity distance. Adding an
-  encoder-side auxiliary penalty on top of prediction-side regularization gives
+  Encoder auxiliary penalty on top of prediction-side regularization gives
   similar test MSE (`6.09e-2`) at higher train time. Mean wall-clock train time
   is about `9.03s` for no regularizer, `12.55s` for encoder-only, `12.23s` for
   prediction-only, and `15.80s` for prediction-plus-encoder. This makes the
@@ -190,6 +185,16 @@ operators.
   failure. This is a real learned nonlinear check of the
   proposed regularizer, not a closed-form synthetic identity; it should still be
   framed as a small-scale diagnostic rather than a full image-JEPA result.
+- **Scaled MNIST regularizer:** supported as a harder real-image diagnostic.
+  The GPU run uses 28x28 left-to-right completion with 10k training images, a
+  convolutional encoder, a 256-dimensional predictor representation, and a
+  spatial decoder. Over ten seeds, prediction-side regularization improves test
+  MSE from about `3.68e-2` to `3.43e-2`, foreground MSE from about `1.29e-1` to
+  `1.19e-1`, and the train-test gap by about `24%`. It also reduces the
+  prediction-side Gaussianity score from about `3.24e-1` to `1.31e-2` and raises
+  predictive effective rank from about `5.86` to `10.03`. The combined
+  objective gives similar risk and the smallest gap, but prediction-side
+  regularization is the main source of the risk improvement.
 
 ## Regularization Implication
 

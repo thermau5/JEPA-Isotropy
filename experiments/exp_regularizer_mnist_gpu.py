@@ -359,6 +359,8 @@ def train_one(params: dict[str, Any]) -> dict[str, Any]:
 
     n = x_tr.shape[0]
     gen = torch.Generator().manual_seed(seed + 505)
+    if device.type == "cuda":
+        torch.cuda.synchronize()
     t_start = time.perf_counter()
 
     for _epoch in range(epochs):
@@ -385,6 +387,8 @@ def train_one(params: dict[str, Any]) -> dict[str, Any]:
         if scheduler is not None:
             scheduler.step()
 
+    if device.type == "cuda":
+        torch.cuda.synchronize()
     train_seconds = time.perf_counter() - t_start
 
     # Batched evaluation to avoid OOM on large datasets

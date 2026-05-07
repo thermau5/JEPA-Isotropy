@@ -150,9 +150,9 @@ def plot_samples(config_path: Path, output_path: Path, seed: int = 0) -> None:
     configure_matplotlib()
     plt.rcParams.update(
         {
-            "font.weight": "semibold",
-            "axes.titleweight": "semibold",
-            "axes.labelweight": "semibold",
+            "font.weight": "normal",
+            "axes.titleweight": "normal",
+            "axes.labelweight": "normal",
         }
     )
     column_specs = [("Context", None), ("Target", None)] + [
@@ -185,7 +185,7 @@ def plot_samples(config_path: Path, output_path: Path, seed: int = 0) -> None:
             ha="center",
             va="bottom",
             fontsize=9.0,
-            fontweight="semibold",
+            fontweight="normal",
             color="black",
         )
 
@@ -223,7 +223,7 @@ def plot_samples(config_path: Path, output_path: Path, seed: int = 0) -> None:
                     labelpad=9.0,
                     color=GRAY,
                     fontsize=8.8,
-                    fontweight="semibold",
+                    fontweight="normal",
                 )
             if method is not None:
                 ax.text(
@@ -234,7 +234,7 @@ def plot_samples(config_path: Path, output_path: Path, seed: int = 0) -> None:
                     ha="center",
                     va="top",
                     fontsize=7.0,
-                    fontweight="semibold",
+                    fontweight="normal",
                     color=GRAY,
                     clip_on=False,
                 )
