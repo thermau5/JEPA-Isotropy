@@ -89,6 +89,7 @@ def dashed_theory(
     linestyle: str = "--",
     zorder: int = 1,
     alpha: float = 0.9,
+    color: str = THEORY,
 ) -> None:
     """Dashed population-value curve."""
 
@@ -100,7 +101,7 @@ def dashed_theory(
     ax.plot(
         data[x],
         values,
-        color=THEORY,
+        color=color,
         linestyle=linestyle,
         linewidth=THEORY_LINE_WIDTH,
         alpha=alpha,
@@ -118,7 +119,7 @@ def dashed_theory(
             data[x],
             lower,
             upper,
-            color=THEORY,
+            color=color,
             alpha=THEORY_BAND_ALPHA,
             linewidth=0.0,
             zorder=max(0, zorder - 1),
@@ -729,6 +730,340 @@ def empirical_quantile(values: pd.Series, probability: float) -> float:
     return float(sorted_values[index])
 
 
+def concentration_lemma_summary(
+    frame: pd.DataFrame,
+    group: str,
+    x_value: str,
+    lhs_value: str,
+    scale: pd.Series | np.ndarray | None = None,
+    delta: float = 0.1,
+) -> tuple[pd.DataFrame, float, float]:
+    """Aggregate empirical LHS and calibrated RHS for concentration lemmas."""
+
+    data = frame.copy()
+    if scale is None:
+        scale = data["oracle_sigma_top"] * np.sqrt(
+            (data["oracle_effdim"] + np.log(1.0 / delta)) / data["n_train"]
+        )
+    scale = pd.Series(scale, index=data.index, dtype=float)
+    c_hat = empirical_quantile(data[lhs_value] / scale, 1.0 - delta)
+    data["concentration_lhs"] = data[lhs_value]
+    data["concentration_rhs"] = c_hat * scale
+    coverage = float(np.mean(data["concentration_lhs"] <= data["concentration_rhs"]))
+    summary = (
+        data.groupby(group)
+        .agg(
+            x=(x_value, "mean"),
+            concentration_lhs_mean=("concentration_lhs", "mean"),
+            concentration_lhs_sem=("concentration_lhs", "sem"),
+            concentration_rhs_mean=("concentration_rhs", "mean"),
+            concentration_rhs_sem=("concentration_rhs", "sem"),
+        )
+        .reset_index()
+        .sort_values("x")
+    )
+    return summary, c_hat, coverage
+
+
+def joint_covariance_concentration_scale(frame: pd.DataFrame, delta: float) -> pd.Series:
+    """Corrected Lemma A.8 scale from the joint covariance of (Y, Z)."""
+
+    sigma_y2 = frame["sigma_y"] ** 2
+    sigma_z2 = frame["sigma_z"] ** 2
+    target_width = frame["K"] * frame["target_dim"]
+    signal_top = frame["oracle_lambda_top"].clip(lower=0.0)
+    signal_sv_top = np.sqrt(signal_top)
+    two_by_two_trace = sigma_y2 + signal_top + sigma_z2 + 1.0
+    two_by_two_gap = sigma_y2 + signal_top - (sigma_z2 + 1.0)
+    joint_op = 0.5 * (
+        two_by_two_trace + np.sqrt(two_by_two_gap**2 + 4.0 * signal_sv_top**2)
+    )
+    joint_op = np.maximum.reduce(
+        [
+            joint_op.to_numpy(dtype=float),
+            sigma_y2.to_numpy(dtype=float),
+            sigma_z2.to_numpy(dtype=float),
+        ]
+    )
+    joint_op = pd.Series(joint_op, index=frame.index)
+    joint_trace = (
+        sigma_y2 * target_width
+        + sigma_z2 * frame["context_dim"]
+        + frame["oracle_trace_h"]
+        + frame["r_star"]
+    )
+    joint_effdim = joint_trace / joint_op.clip(lower=1e-12)
+    window = (joint_effdim + np.log(1.0 / delta)) / frame["n_train"]
+    return joint_op * (np.sqrt(window) + window)
+
+
+def corrected_operator_concentration_scale(frame: pd.DataFrame, delta: float) -> pd.Series:
+    """Corrected concentration scale with the additive linear term."""
+
+    window = (frame["oracle_effdim"] + np.log(1.0 / delta)) / frame["n_train"]
+    return frame["oracle_sigma_top"] * (np.sqrt(window) + window)
+
+
+def inverse_sqrt_for_plot(matrix: np.ndarray, floor: float = 1e-8) -> np.ndarray:
+    sym = 0.5 * (matrix + matrix.T)
+    evals, evecs = np.linalg.eigh(sym)
+    evals = np.clip(evals, floor, None)
+    return (evecs * (1.0 / np.sqrt(evals))) @ evecs.T
+
+
+def row_covariance(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    return (y.T @ x) / x.shape[0]
+
+
+def real_digit_t_concentration_frame(
+    sample_sizes: list[int] | None = None,
+    seeds: range = range(20),
+) -> pd.DataFrame:
+    """Empirical real-data proxy for Lemma A.9 on sklearn 8x8 digits."""
+
+    from sklearn.datasets import load_digits
+
+    if sample_sizes is None:
+        sample_sizes = [64, 96, 128, 192, 256, 384, 512, 768, 1024, 1280, 1536]
+    digits = load_digits()
+    images = digits.images.astype(np.float64) / 16.0
+    context = images[:, :, :4].reshape(len(images), -1)
+    target = images[:, :, 4:].reshape(len(images), -1)
+    sigma_yz_ref = row_covariance(context, target)
+    sigma_zz_ref = row_covariance(context, context)
+    t_ref = sigma_yz_ref @ inverse_sqrt_for_plot(sigma_zz_ref)
+    ref_singular_values = np.linalg.svd(t_ref, compute_uv=False)
+    sigma_top = float(ref_singular_values[0])
+    effdim = float(np.sum(ref_singular_values**2) / max(sigma_top**2, 1e-12))
+    rows = []
+    for n_train in sample_sizes:
+        for seed in seeds:
+            rng = np.random.default_rng(seed)
+            indices = rng.choice(len(context), size=n_train, replace=False)
+            z_sub = context[indices]
+            y_sub = target[indices]
+            sigma_yz_hat = row_covariance(z_sub, y_sub)
+            sigma_zz_hat = row_covariance(z_sub, z_sub)
+            t_hat = sigma_yz_hat @ inverse_sqrt_for_plot(sigma_zz_hat)
+            lhs = float(np.linalg.svd(t_hat - t_ref, compute_uv=False)[0])
+            rows.append(
+                {
+                    "n_train": n_train,
+                    "operator_error_op": lhs,
+                    "oracle_sigma_top": sigma_top,
+                    "oracle_effdim": effdim,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def plot_concentration_lemmas() -> None:
+    """Direct LHS/RHS diagnostics for Lemmas A.8 and A.9."""
+
+    delta = 0.1
+    heterogeneity = pd.read_csv(RESULTS / "exp_heterogeneity.csv")
+    post_saturation = pd.read_csv(RESULTS / "exp_post_saturation.csv")
+    real_digits = real_digit_t_concentration_frame()
+    het_old_summary, het_old_c, het_old_coverage = concentration_lemma_summary(
+        heterogeneity,
+        group="alpha",
+        x_value="oracle_lambda_het_proxy",
+        lhs_value="cross_cov_error_op",
+        delta=delta,
+    )
+    het_new_summary, het_new_c, het_new_coverage = concentration_lemma_summary(
+        heterogeneity,
+        group="alpha",
+        x_value="oracle_lambda_het_proxy",
+        lhs_value="cross_cov_error_op",
+        scale=joint_covariance_concentration_scale(heterogeneity, delta),
+        delta=delta,
+    )
+    post_old_summary, post_old_c, post_old_coverage = concentration_lemma_summary(
+        post_saturation,
+        group="K",
+        x_value="K",
+        lhs_value="operator_error_op",
+        delta=delta,
+    )
+    post_new_summary, post_new_c, post_new_coverage = concentration_lemma_summary(
+        post_saturation,
+        group="K",
+        x_value="K",
+        lhs_value="operator_error_op",
+        scale=corrected_operator_concentration_scale(post_saturation, delta),
+        delta=delta,
+    )
+    real_old_summary, real_old_c, real_old_coverage = concentration_lemma_summary(
+        real_digits,
+        group="n_train",
+        x_value="n_train",
+        lhs_value="operator_error_op",
+        delta=delta,
+    )
+    real_new_summary, real_new_c, real_new_coverage = concentration_lemma_summary(
+        real_digits,
+        group="n_train",
+        x_value="n_train",
+        lhs_value="operator_error_op",
+        scale=corrected_operator_concentration_scale(real_digits, delta),
+        delta=delta,
+    )
+    fig, axes = make_figure(ncols=3, figsize=(7.1, 2.05))
+    line_with_band(
+        axes[0],
+        het_old_summary,
+        "x",
+        "concentration_lhs",
+        "Empirical LHS",
+        color=GRAY,
+        marker="o",
+        zorder=4,
+    )
+    dashed_theory(
+        axes[0],
+        het_old_summary,
+        "x",
+        "concentration_rhs",
+        label="Old RHS",
+        zorder=2,
+    )
+    dashed_theory(
+        axes[0],
+        het_new_summary,
+        "x",
+        "concentration_rhs",
+        label="Corrected RHS",
+        zorder=3,
+        color=BLUE,
+    )
+    line_with_band(
+        axes[1],
+        post_old_summary,
+        "x",
+        "concentration_lhs",
+        "Empirical LHS",
+        color=GRAY,
+        marker="o",
+        zorder=4,
+    )
+    dashed_theory(
+        axes[1],
+        post_old_summary,
+        "x",
+        "concentration_rhs",
+        label="Old RHS",
+        zorder=2,
+    )
+    dashed_theory(
+        axes[1],
+        post_new_summary,
+        "x",
+        "concentration_rhs",
+        label="Corrected RHS",
+        zorder=3,
+        color=BLUE,
+    )
+    line_with_band(
+        axes[2],
+        real_old_summary,
+        "x",
+        "concentration_lhs",
+        "Empirical LHS",
+        color=GRAY,
+        marker="o",
+        zorder=4,
+    )
+    dashed_theory(
+        axes[2],
+        real_old_summary,
+        "x",
+        "concentration_rhs",
+        label="Old RHS",
+        zorder=2,
+    )
+    dashed_theory(
+        axes[2],
+        real_new_summary,
+        "x",
+        "concentration_rhs",
+        label="Corrected RHS",
+        zorder=3,
+        color=BLUE,
+    )
+    _ = (het_old_c, het_new_c, het_old_coverage, het_new_coverage)
+    _ = (post_old_c, post_new_c, post_old_coverage, post_new_coverage)
+    _ = (real_old_c, real_new_c, real_old_coverage, real_new_coverage)
+    add_axis_legend(axes[0])
+    add_axis_legend(axes[1])
+    add_axis_legend(axes[2])
+    style_axis(
+        axes[0],
+        r"Population $\lambda_{\mathrm{het}}$",
+        "Operator norm",
+        "(a) Lemma A.8",
+    )
+    style_axis(axes[1], "Target count $K$", "Operator norm", "(b) Lemma A.9")
+    style_axis(axes[2], "Subsample size $n$", "Operator norm", "(c) 8x8 proxy")
+    axes[2].set_xscale("log")
+    save_figure(fig, FIGURES / "exp_concentration_lemmas.pdf")
+
+
+def stress_summary(frame: pd.DataFrame, stress: str) -> pd.DataFrame:
+    metrics = ["lhs", "old_rhs", "corrected_rhs"]
+    data = frame[frame["stress"] == stress]
+    summary = data.groupby("x", as_index=False)[metrics].agg(["mean", "sem"])
+    summary.columns = ["x"] + [f"{name}_{stat}" for name, stat in summary.columns[1:]]
+    return summary.sort_values("x")
+
+
+def plot_concentration_stress_tests() -> None:
+    """Stress tests showing when the old concentration scale fails."""
+
+    frame = pd.read_csv(RESULTS / "exp_concentration_stress.csv")
+    fig, axes = make_figure(ncols=3, figsize=(7.1, 2.05))
+    panels = [
+        ("shuffle", "Subsample size $n$", "(a) Shuffle"),
+        ("additive_noise", r"Noise scale $\sigma$", "(b) Additive noise"),
+        ("weak_correlation", r"Correlation scale $\rho$", "(c) Weak correlation"),
+    ]
+    for ax, (stress, xlabel, panel) in zip(axes, panels):
+        summary = stress_summary(frame, stress)
+        line_with_band(
+            ax,
+            summary,
+            "x",
+            "lhs",
+            "Empirical LHS",
+            color=GRAY,
+            marker="o",
+            zorder=4,
+        )
+        dashed_theory(
+            ax,
+            summary,
+            "x",
+            "old_rhs",
+            label="Old RHS",
+            zorder=2,
+        )
+        dashed_theory(
+            ax,
+            summary,
+            "x",
+            "corrected_rhs",
+            label="Corrected RHS",
+            zorder=3,
+            color=BLUE,
+        )
+        add_axis_legend(ax)
+        style_axis(ax, xlabel, "Operator norm", panel)
+    axes[0].set_xscale("log")
+    axes[1].set_xscale("log")
+    axes[1].set_yscale("log")
+    save_figure(fig, FIGURES / "exp_concentration_stress.pdf")
+
+
 def compact_scientific(value: float, precision: int = 1) -> str:
     if np.isclose(value, 1.0):
         return "1"
@@ -1052,6 +1387,8 @@ def main() -> None:
     plot_heterogeneity()
     plot_bottleneck()
     plot_post_saturation()
+    plot_concentration_lemmas()
+    plot_concentration_stress_tests()
     plot_predictive_isotropy()
     plot_gauge_factorization()
     plot_regularizer_digits()

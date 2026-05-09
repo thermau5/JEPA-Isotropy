@@ -21,6 +21,7 @@ python -m experiments.exp_k_saturation
 python -m experiments.exp_heterogeneity
 python -m experiments.exp_bottleneck
 python -m experiments.exp_post_saturation
+python -m experiments.exp_concentration_stress
 python -m experiments.exp_predictive_isotropy
 python -m experiments.exp_gauge_factorization
 python -m experiments.exp_regularizer_digits
@@ -66,6 +67,19 @@ operators.
   empirical finite-window `L_hat`.
   The old unwhitened diagnostic is preserved under
   `archive/post_saturation_legacy/`.
+- `exp_concentration_lemmas.pdf`: direct appendix diagnostic for Lemma A.8 and
+  Lemma A.9. Panel (a) plots
+  `||Sigma_hat_YZ-Sigma_YZ||_op` against both the old cross-covariance
+  effective-rank RHS and the corrected joint-covariance concentration bound on
+  the heterogeneity sweep. Panel (b) plots
+  `||T_hat_K-T_K||_op` against both the old square-root RHS and the corrected
+  square-root-plus-linear RHS on the whitened post-saturation sweep. Panel (c)
+  repeats the A.9 comparison on real 8x8 digit halves using the full dataset as
+  the reference operator.
+- `exp_concentration_stress.pdf`: appendix stress test for the corrected
+  concentration scale. It uses shuffled, additive-noise, and weak-correlation
+  Gaussian designs to show where the old cross-covariance RHS collapses or
+  stays fixed while the empirical perturbation remains nonzero.
 - `exp_predictive_isotropy.pdf`: fixed-rank, fixed-trace spectrum ablation for
   the new predictive-isotropy section. It holds `rank(T_K)=d`, `K=d`, and
   `tr(H_K)` fixed while moving only the eigenvalue profile of
@@ -117,6 +131,21 @@ operators.
   `d=r_star=24`,
   so it matches the Section 3.2 predictive-rank setting rather than the
   bottleneck ablation.
+- **Concentration lemmas:** directly diagnosed in a separate appendix figure.
+  For Lemma A.8, panel (a) shows both the old RHS (`C_hat_0.9=2.87`) and the
+  corrected joint-covariance RHS (`C_hat_0.9=0.07`), each covering `270/300`
+  cross-covariance perturbation samples by construction. For Lemma A.9, the
+  whitened post-saturation sweep gives `C_hat_0.9=1.79` for the old RHS and
+  `C_hat_0.9=1.73` for the corrected RHS, each covering `90/100`
+  whitened-operator perturbation samples by construction. The real 8x8 digit
+  proxy gives `C_hat_0.9=1.17` for the old RHS and `C_hat_0.9=1.02` for the
+  corrected RHS, each covering `198/220` subsample perturbation estimates.
+- **Concentration stress tests:** included to show why the old concentration
+  scale is not valid beyond the correlated regimes in the main experiments.
+  With constants calibrated once on a correlated Gaussian baseline, the old RHS
+  is zero in the shuffle test, remains fixed as additive target noise grows,
+  and collapses as the cross-correlation scale goes to zero. The corrected RHS
+  tracks the marginal-variance sampling scale in all three diagnostics.
 - **Bottleneck:** supported. Increasing `d` reduces per-target MSE and also reduces
   the normalized empirical excess risk over OLS, empirical plug-in spectral-tail
   ratio, and population spectral-tail ratio, with all theorem-facing curves

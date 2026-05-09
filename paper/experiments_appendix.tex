@@ -103,11 +103,11 @@ perturbation $\widehat{\epsilon}=\|\widehat{\Sigma}_{YZ}-\Sigma_{YZ}\|_{\rm op}$
 and the corresponding Davis-Kahan/Wedin-style denominator
 $\sqrt{\lambda_{\mathrm{het}}}-\widehat{\epsilon}$. When this denominator is
 nonpositive, the finite-sample bound is vacuous. We keep these quantities in
-the CSV as validity diagnostics, but omit them from
-\cref{fig:heterogeneity} because the bound is loose for this sweep and is
-less informative than the rank and risk panels. The post-saturation experiment
-plots the recovery-bound diagnostic in a finite window where the relative
-conditioning condition is non-vacuous.
+the CSV as validity diagnostics. {\color{blue}We omit them from \cref{fig:heterogeneity}
+because the bound is loose for this sweep, and report the direct concentration
+check separately in \cref{fig:concentration-lemmas}.} The post-saturation
+experiment plots the recovery-bound diagnostic in a finite window where the
+relative-conditioning condition is non-vacuous.
 
 For the bottleneck experiment, the plotted spectral-tail quantity is the
 reduced-rank approximation error predicted by the bottleneck spectral-tail
@@ -313,6 +313,100 @@ K & \widehat{\eta}_{K,\mathrm{mean}} & \widehat{\eta}_{K,\max}
 512 & 0.0929 & 0.0947 & 0.4748 & 10/10
 \end{array}
 \]
+
+\paragraph{\textcolor{blue}{Concentration-lemma diagnostics.}}
+{\color{blue}\Cref{fig:concentration-lemmas} directly compares the empirical left-hand
+sides with calibrated right-hand sides for Lemma A.8 and Lemma A.9. For Lemma
+A.8, panel (a) shows both the earlier cross-covariance effective-rank RHS}
+{\color{blue}\[
+    \widehat C_{\mathrm{old}}\|\Sigma_{YZ}\|_{\mathrm{op}}
+    \sqrt{\frac{\operatorname{effdim}(\Sigma_{YZ})+\log(1/\delta)}{n}}
+\]}
+{\color{blue}and the corrected joint-covariance RHS. For the corrected version, let
+$U=(Y^\top,Z^\top)^\top$, $M=\mathbb E[UU^\top]$, and
+$r(M)=\operatorname{tr}(M)/\|M\|_{\mathrm{op}}$. The plotted inequality is}
+{\color{blue}\[
+    \|\widehat\Sigma_{YZ}-\Sigma_{YZ}\|_{\mathrm{op}}
+    \le
+    \widehat C_{\mathrm{new}}\|M\|_{\mathrm{op}}
+    \left(
+    \sqrt{\frac{r(M)+\log(1/\delta)}{n}}
+    +
+    \frac{r(M)+\log(1/\delta)}{n}
+    \right),
+\]}
+{\color{blue}evaluated on the heterogeneity sweep. After calibration, the old and corrected
+RHS curves have the same order of magnitude in this synthetic setting, so the
+correction does not change the qualitative A.8 diagnostic. For Lemma A.9, panel
+(b) shows the same comparison with $T_K$ in place of $\Sigma_{YZ}$. The earlier
+RHS is}
+{\color{blue}\[
+    \|\widehat T_K-T_K\|_{\mathrm{op}}
+    \le
+    \widehat C_{\mathrm{old}}\|T_K\|_{\mathrm{op}}
+    \sqrt{\frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}},
+\]}
+{\color{blue}and the corrected RHS adds the linear term:}
+{\color{blue}\[
+    \|\widehat T_K-T_K\|_{\mathrm{op}}
+    \le
+    \widehat C_{\mathrm{new}}\|T_K\|_{\mathrm{op}}
+    \left(
+    \sqrt{\frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}}
+    +
+    \frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}
+    \right).
+\]}
+{\color{blue}The two A.9 RHS curves nearly overlap because the linear term is small at the
+post-saturation sample size. Panel (c) repeats the A.9 calculation on the
+real $8\times8$ digit halves. Since the real-data population operator is
+unknown, we use the full digit dataset to define a reference operator
+$T_{\mathrm{ref}}$ and compare subsample estimates $\widehat T_n$ against it.
+This panel is a finite-data proxy for the concentration scale, not a formal
+population validation of the lemma. We use $\delta=0.1$ and set
+$\widehat C_{0.9}$ by the same 90\% order-statistic calibration as above. The
+diagnostic checks the finite-window scale of the inequalities; it is not a
+claim about a distribution-free universal constant.}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/exp_concentration_lemmas.pdf}
+    \caption{\small {\color{blue}Concentration-lemma diagnostics. Panel (a) plots the
+    empirical A.8 left-hand side with the old cross-covariance RHS and the
+    corrected joint-covariance RHS. Panel (b) plots the whitened-predictor
+    A.9 left-hand side with the old square-root RHS and the corrected
+    square-root-plus-linear RHS. Panel (c) repeats the A.9 comparison on
+    sklearn $8\times8$ digit halves using the full dataset as a reference
+    operator. Solid curves are empirical left-hand sides; dashed curves are
+    calibrated right-hand sides.}}
+    \label{fig:concentration-lemmas}
+\end{figure}
+
+\paragraph{\textcolor{blue}{Concentration stress tests.}}
+{\color{blue}\Cref{fig:concentration-stress} separates empirical tightness from validity of
+the concentration scale. We calibrate constants once on a correlated Gaussian
+baseline with $\rho=1$ and $\sigma=1$, then keep those constants fixed while
+changing the data distribution. In the shuffle test, $Y$ is sampled
+independently of $X$, so $\Sigma_{YX}=0$ and the old RHS collapses to zero even
+though $\|\widehat\Sigma_{YX}-\Sigma_{YX}\|_{\mathrm{op}}$ is nonzero. In the
+additive-noise test, $Y=X+\sigma\epsilon$; the old RHS is nearly constant
+because $\Sigma_{YX}$ does not depend on $\sigma$, while the corrected RHS grows
+with the marginal variance of $Y$. In the weak-correlation test,
+$Y=\rho X+\epsilon$; as $\rho\to0$, the old RHS collapses but the empirical
+fluctuation remains at the independent-sampling scale. These stress tests are
+not used as main evidence for the model claims. They document why the corrected
+joint-covariance scale is the right statement even when the old scale happens
+to be close in the paper-facing regimes.}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/exp_concentration_stress.pdf}
+    \caption{\small {\color{blue}Concentration stress tests. Constants are calibrated once
+    on a correlated Gaussian baseline and then held fixed. The old RHS fails
+    when cross-covariance signal is decoupled from marginal variance; the
+    corrected RHS tracks the sampling-noise scale.}}
+    \label{fig:concentration-stress}
+\end{figure}
 
 \paragraph{Predictive-isotropy construction.}
 The fixed-trace predictive-isotropy experiment tests the second-moment

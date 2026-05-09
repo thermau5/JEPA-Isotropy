@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from experiments.common import ROOT, run_from_config
+from experiments.exp_concentration_stress import run as run_concentration_stress
 from experiments.exp_gauge_factorization import run as run_gauge_factorization
 from experiments.exp_regularizer_digits import run as run_regularizer_digits
 
@@ -47,6 +48,9 @@ def main() -> None:
     output = ROOT / "results" / "results.csv"
     output.parent.mkdir(parents=True, exist_ok=True)
     combined.to_csv(output, index=False)
+
+    stress_output = ROOT / "results" / "exp_concentration_stress.csv"
+    run_concentration_stress().to_csv(stress_output, index=False)
 
 
 if __name__ == "__main__":
