@@ -291,9 +291,10 @@ targets help only when they improve relative conditioning of the
 already-accessible predictive subspace.
 \Cref{fig:post-saturation} reports the weakest and top eigenvalues of
 $H_K=T_K^\top T_K$, the relative conditioning ratio $\kappa_K^2$, the effective
-dimension of $T_K$, the risk-stability bound, excess risk, and finite-sample
-risk. The effective-dimension panel checks that
-$\operatorname{effdim}(T_K)$ remains bounded over the finite window required by
+rank of $T_K$, the risk-stability bound, excess risk, and finite-sample
+risk. The effective-rank panel checks that
+$r(T_K)\coloneqq\operatorname{tr}(T_K^\top T_K)/\|T_K\|_{\mathrm{op}}^2$ remains
+bounded over the finite window required by
 the post-saturation relative-geometry condition. We compute the empirical
 risk-stability ratio
 \[
@@ -380,9 +381,9 @@ finite-window perturbation diagnostic with $T_K$ in place of $\Sigma_{YZ}$:}
     \le
     \widehat C_{0.9}\|T_K\|_{\mathrm{op}}
     \left(
-    \sqrt{\frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}}
+    \sqrt{\frac{r(T_K)+\log(1/\delta)}{n}}
     +
-    \frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}
+    \frac{r(T_K)+\log(1/\delta)}{n}
     \right).
 \]}
 {\color{blue}Panel (c) repeats the $T_K$ calculation on the

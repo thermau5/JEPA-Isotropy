@@ -478,12 +478,12 @@ def plot_post_saturation_frame(
     if subspace_operator == "whitened_raw":
         eigen_ylabel = r"Eigenvalues of $T_K^\top T_K$"
         kappa_ylabel = r"$\kappa_K^2(T_K)$"
-        effdim_ylabel = r"$\mathrm{effdim}(T_K)$"
+        effdim_ylabel = r"$r(T_K)$"
         stability_label = r"Lipschitz bound"
     else:
         eigen_ylabel = r"Eigenvalues of $G_K$"
         kappa_ylabel = r"$\kappa_K^2=\lambda_d/\lambda_1$"
-        effdim_ylabel = r"$\mathrm{effdim}(\Sigma_{YX})$"
+        effdim_ylabel = r"$r(\Sigma_{YX})$"
         stability_label = r"Lipschitz bound"
     summary = mean_sem(
         frame,

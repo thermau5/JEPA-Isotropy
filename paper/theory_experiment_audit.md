@@ -99,14 +99,14 @@ updated draft.
 | --- | --- | --- |
 | (a) | `lambda_1(H_K)` and `lambda_d(H_K)` | Checks the retained spectrum of `H_K=T_K^T T_K`. |
 | (b) | `kappa_K^2=lambda_d(H_K)/lambda_1(H_K)` | Directly checks the finite-window relative-conditioning premise. |
-| (c) | `effdim(T_K)` | Checks the bounded effective-dimension term in the concentration bound. |
+| (c) | `r(T_K)` | Checks the bounded effective-rank term in the concentration bound. |
 | (d) | per-target excess risk vs. `L_hat ||sinTheta_T||_op` | Empirical finite-window diagnostic for the subspace-Lipschitz bridge. |
 | (e) | per-target excess risk vs. calibrated excess-risk bound | Checks the finite-sample excess term in Proposition 3.11 using the relative perturbation envelope. |
 | (f) | finite-sample per-target risk vs. calibrated risk-decomposition bound | Checks Proposition 3.11 and the risk-decomposition equation; in this config the spectral-tail term is zero up to numerical precision because `d=r_star(K)`. |
 
 Current ten-seed readout:
 
-| K | population `kappa_K^2` | finite `kappa_K^2` | `sinTheta_T` mean | `effdim(T_K)` population | `effdim(T_K)` finite | excess MSE | per-target MSE |
+| K | population `kappa_K^2` | finite `kappa_K^2` | `sinTheta_T` mean | `r(T_K)` population | `r(T_K)` finite | excess MSE | per-target MSE |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 64 | 0.0200 | 0.0195 | 0.1705 | 16.30 | 16.16 | 7.756e-4 | 7.823e-2 |
 | 96 | 0.1226 | 0.1160 | 0.0921 | 19.50 | 19.31 | 6.102e-4 | 7.504e-2 |
@@ -182,7 +182,7 @@ displayed endpoint.
 
 The updated draft uses the relative perturbation event
 `||T_hat_K - T_K||_op <= rho_n(delta) ||T_K||_op`, not a concentration
-constant derived from `effdim(T_K)`. With `delta=0.1`, the current plotted run
+constant derived from `r(T_K)`. With `delta=0.1`, the current plotted run
 uses
 
 ```text
@@ -210,7 +210,7 @@ phrased as a proof of a global constant.
 | Relative `T_K` perturbation diagnostics | `exp_concentration_lemmas.pdf` panel (b) plots `||T_hat_K-T_K||_op` against the calibrated square-root-plus-linear diagnostic (`C_hat_0.9=1.73`) on the post-saturation sweep. Panel (c) is a real 8x8 digit finite-data proxy with `C_hat_0.9=1.02`. | Direct LHS/RHS diagnostic |
 | Bottleneck spectral tail | `exp_bottleneck` compares normalized excess risk with population and plug-in spectral-tail ratios. | Covered |
 | Theorem 3.15, unified finite-sample risk | `exp_unified_risk` uses `r=16<r_star=32`, validates the nonzero spectral tail, checks the retained relative gap against `rho_0.9`, plots Wedin and subspace-Lipschitz diagnostics, and compares finite risk with the assembled calibrated bound. | Covered |
-| Proposition 3.11, post-saturation risk decomposition | `exp_post_saturation` keeps `r_star(K)=d=64`, increases `kappa_K^2`, plots bounded `effdim(T_K)`, and compares empirical risk with calibrated relative-perturbation bounds. | Covered |
+| Proposition 3.11, post-saturation risk decomposition | `exp_post_saturation` keeps `r_star(K)=d=64`, increases `kappa_K^2`, plots bounded `r(T_K)`, and compares empirical risk with calibrated relative-perturbation bounds. | Covered |
 | Post-saturation recovery | `theorem_subspace_error` is computed from top-`d` right singular subspaces of `T_K` and `T_hat_K`. | Covered |
 | Half-gap simplified rate | Valid seed-wise for all plotted `K`. | Covered |
 | Assumption 3.14, gap-compatible relative perturbation | Post-saturation is gap-valid and half-gap-valid in `100/100` runs. Predictive isotropy intentionally sweeps through the perturbative boundary: `169/200` runs are gap-valid and `111/200` are half-gap-valid. | Covered as validity-window diagnostic |
