@@ -18,18 +18,26 @@ The learned model is the finite-sample RRR solution. Rank $d$ instantiates the
 JEPA bottleneck. Population operators and unconstrained OLS serve as baselines.
 
 \paragraph{Metrics.}
-Risk panels use the per-target normalization in \eqref{eq:per_target_risk}.
+Risk panels use the per-target normalization in~\eqref{eq:per_target_risk}.
 Diagnostics match the quantities in \cref{thm:unified_risk_decomposition} and
 the rank, heterogeneity, and conditioning results. Definitions are in
 \cref{app:synthetic-experimental-details}.
 
 \paragraph{Results.}
 The appendix figures
-\cref{fig:k-saturation,fig:heterogeneity,fig:bottleneck} validate the
-pre-saturation and bottleneck claims. Complementary target stacks increase
-predictive rank, larger $\lambda_{\mathrm{het}}$ improves finite-sample
+{\color{blue}\cref{fig:reduction-diagnostics},}
+\cref{fig:k-saturation,fig:heterogeneity,fig:bottleneck}
+validate the {\color{blue}reduction,} pre-saturation, and bottleneck claims.
+{\color{blue}The factorized linear predictor realizes the RRR solution;}
+complementary target stacks
+increase predictive rank, larger $\lambda_{\mathrm{het}}$ improves finite-sample
 identifiability, and the rank-$d$ bottleneck induces the spectral-tail floor
-predicted by \cref{prop:rank_growth,prop:heterogeneity_identifiability,prop:capacity_lower_bound}.
+predicted by
+\cref{prop:rank_growth,prop:heterogeneity_identifiability,prop:capacity_lower_bound}.
+{\color{blue}\Cref{fig:unified-risk} independently checks
+\cref{thm:unified_risk_decomposition}: with $r<r_\star(K)$, the population
+spectral tail is nonzero, the retained-gap condition is non-vacuous, and the
+calibrated excess term bounds the observed finite-sample risk.}
 The main synthetic diagnostic is \cref{fig:post-saturation}. It tests
 \cref{prop:post_saturation_risk} in the regime $r_\star(K)=d$, where
 additional target blocks cannot create new rank. The experiment allocates new
@@ -73,7 +81,7 @@ normalized to $[0,1]$.
 \paragraph{Models.}
 The small-data task uses an MLP encoder-predictor, and MNIST uses a
 convolutional encoder-decoder. The prediction-side regularizer is applied to
-the predictor representation as in \eqref{eq:predictive_isotropy_regularizer};
+the predictor representation as in~\eqref{eq:predictive_isotropy_regularizer};
 architecture and optimizer details are in
 \cref{app:real-image-regularizer-details}.
 
@@ -81,8 +89,8 @@ architecture and optimizer details are in
 We compare four objectives: no regularization, Encoder Gaussianity,
 prediction-side Gaussianity, and their combination. Encoder Gaussianity is the
 standard representation-side control. Prediction-side Gaussianity is our
-theory-motivated regularizer in
-\eqref{eq:predictive_isotropy_regularizer}, and the combined objective is an
+theory-motivated regularizer
+in~\eqref{eq:predictive_isotropy_regularizer}, and the combined objective is an
 ablation testing whether Encoder Gaussianity improves on prediction-side
 Gaussianity.
 

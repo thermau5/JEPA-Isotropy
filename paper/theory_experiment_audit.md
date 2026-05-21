@@ -1,6 +1,6 @@
 # Theory/Experiment Audit
 
-Updated May 7, 2026 after the uploaded `501.pdf` draft. This
+Updated May 9, 2026 after the uploaded `main.pdf` draft. This
 note audits the current repo results against the numbering and statements in that draft. The canonical
 post-saturation and predictive-isotropy object is the whitened raw predictor
 
@@ -24,22 +24,28 @@ JEPA training is still future work, not claimed by this experiment section.
 
 ## Latest Draft Delta
 
-Compared with the previous audit target, `501.pdf` exposes the following
+Compared with the previous audit target, `main.pdf` exposes the following
 numbered statements that matter for experiment references:
 
 | Draft item | Current experiment mapping |
 | --- | --- |
+| Proposition 3.1 and Lemma 3.2, JEPA as RRR and rank formula | `figures/exp_reduction_diagnostics.pdf` directly factorizes the population RRR coefficient as `W A`, checks its rank against `min(r, rank(Sigma_YX))`, and reports coefficient/loss gaps. |
 | Proposition 3.8, heterogeneity controls predictive-subspace identifiability | `exp_heterogeneity` is the direct validation; it uses measured `lambda_het` as the x-axis and reports rank/risk recovery. |
-| Lemma A.8, cross-covariance concentration | `figures/exp_concentration_lemmas.pdf` panel (a) plots `||Sigma_hat_YZ-Sigma_YZ||_op` against both the earlier cross-covariance effective-rank RHS and the corrected joint-covariance RHS on the heterogeneity sweep. |
-| Lemma A.9, concentration of the whitened raw predictor | `figures/exp_concentration_lemmas.pdf` panel (b) plots `||T_hat_K-T_K||_op` against both the old square-root RHS and the corrected square-root-plus-linear RHS on the post-saturation sweep. Panel (c) repeats the same A.9 comparison on real 8x8 digit halves using the full dataset as a reference operator. |
-| Corrected concentration stress tests | `figures/exp_concentration_stress.pdf` deliberately decouples cross-covariance signal from marginal variance through shuffle, additive-noise, and weak-correlation designs. It shows where the old RHS fails and the corrected RHS has the right scale. |
-| Proposition 3.12, post-saturation risk decomposition | `exp_post_saturation` is the main validation. |
-| Theorem 3.15, unified finite-sample risk decomposition | Synthetic risk panels plus the post-saturation calibrated bounds. |
+| Lemma A.4, joint-covariance control of cross-covariance noise | `figures/exp_concentration_lemmas.pdf` panel (a) plots `||Sigma_hat_YZ-Sigma_YZ||_op` against the calibrated joint-covariance RHS on the heterogeneity sweep. |
+| Relative perturbation event for `T_K` in Proposition 3.11 / Appendix A.3 | `figures/exp_concentration_lemmas.pdf` panel (b) plots `||T_hat_K-T_K||_op` against the calibrated square-root-plus-linear diagnostic on the post-saturation sweep. Panel (c) repeats the same `T_K` comparison on real 8x8 digit halves using the full dataset as a reference operator. |
+| Proposition 3.11, post-saturation risk decomposition | `exp_post_saturation` is the main validation. |
+| Theorem 3.15, unified finite-sample risk decomposition | `exp_unified_risk` is the independent theorem-level validation; other synthetic panels validate individual terms. |
 | Lemma 4.1 and Theorem 4.2, predictive isotropy | `exp_predictive_isotropy` fixes rank and trace and varies the spectrum of `H_K=T_K^T T_K`. |
 | Lemma 4.4, Theorem 4.5, Theorem 4.6, and Corollary 4.7 | `exp_gauge_factorization` validates gauge invariance and encoder covariance/Gaussianity consequences. |
 
 The current repo TeX still uses symbolic `\cref` labels where available; the
 compiled draft displays the corresponding numeric names above.
+
+Important renumbering: Lemma A.8 and Lemma A.9 in `main.pdf` are entropy
+lemmas, not concentration lemmas. They support the Gaussianity/isotropy theory
+behind `exp_predictive_isotropy`, `exp_gauge_factorization`, and the real-image
+regularizer diagnostics. The direct concentration diagnostic now maps to Lemma
+A.4 and to the relative perturbation event used in Proposition 3.11.
 
 ## Experiment Text Synchronization Warning
 
@@ -65,7 +71,7 @@ The current repo-facing files use the newer terminology and design:
 - no seed-level scatter/control figure is generated or referenced.
 
 When updating the paper source, paste from `paper/experiments_section.tex` and
-`paper/experiments_appendix.tex`; the compiled `501.pdf` should be treated as a
+`paper/experiments_appendix.tex`; the compiled `main.pdf` should be treated as a
 numbering/reference target, not as editable source.
 
 ## Current Configurations
@@ -75,12 +81,14 @@ numbering/reference target, not as editable source.
 | K saturation | `configs/k_saturation.yaml` | `D_x=160`, `r_star=d=64`, `n_train=1024`, `K=1..256` |
 | Heterogeneity | `configs/heterogeneity.yaml` | `D_x=64`, `r_star=d=24`, `K=48`, `n_train=32768` |
 | Bottleneck | `configs/bottleneck.yaml` | `D_x=64`, `r_star=24`, `K=48`, `d` swept |
+| Unified risk | `configs/unified_risk.yaml` | `D_x=80`, `r_star=32`, `K=64`, `d=16`, `n_train=512..16384`, `subspace_operator=whitened_raw` |
 | Post-saturation | `configs/post_saturation.yaml` | `D_x=160`, `r_star=d=64`, `K=64..512`, `n_train=16384`, `subspace_operator=whitened_raw` |
 | Predictive isotropy | `configs/predictive_isotropy.yaml` | `D_x=64`, `r_star=d=K=24`, fixed `tr(H_K)` |
 | Gauge factorization | `configs/gauge_factorization.yaml` | `D_x=64`, `r_star=d=K=24`, identity/orthogonal/diagonal gauges |
 | Regularizer digits | `configs/regularizer_digits.yaml` | nonlinear half-digit prediction, 10 seeds, encoder/predictive Gaussianity penalties |
 | Regularizer MNIST MLP | `configs/regularizer_mnist.yaml` | 28x28 half-image prediction, 10 seeds, low-label MLP diagnostic |
 | Regularizer MNIST CNN | `configs/regularizer_mnist_gpu.yaml` | 28x28 half-image prediction, 10 seeds, GPU CNN encoder and spatial decoder |
+| Reduction diagnostics | fixed in `experiments/exp_reduction_diagnostics.py` | population RRR coefficient factorization over 350 settings |
 
 ## Figure 1 Audit: Post-Saturation
 
@@ -93,8 +101,8 @@ updated draft.
 | (b) | `kappa_K^2=lambda_d(H_K)/lambda_1(H_K)` | Directly checks the finite-window relative-conditioning premise. |
 | (c) | `effdim(T_K)` | Checks the bounded effective-dimension term in the concentration bound. |
 | (d) | per-target excess risk vs. `L_hat ||sinTheta_T||_op` | Empirical finite-window diagnostic for the subspace-Lipschitz bridge. |
-| (e) | per-target excess risk vs. calibrated excess-risk bound | Checks the finite-sample excess term inside `eq:risk_decomposition`. |
-| (f) | finite-sample per-target risk vs. calibrated risk-decomposition bound | Checks Proposition 3.12 and the risk-decomposition equation; in this config the spectral-tail term is zero up to numerical precision because `d=r_star(K)`. |
+| (e) | per-target excess risk vs. calibrated excess-risk bound | Checks the finite-sample excess term in Proposition 3.11 using the relative perturbation envelope. |
+| (f) | finite-sample per-target risk vs. calibrated risk-decomposition bound | Checks Proposition 3.11 and the risk-decomposition equation; in this config the spectral-tail term is zero up to numerical precision because `d=r_star(K)`. |
 
 Current ten-seed readout:
 
@@ -110,6 +118,40 @@ This validates the repaired qualitative mechanism: after rank has saturated,
 extra targets help only when they improve relative conditioning of the already
 accessible predictive directions. Here `r_star(K)=d=64` throughout, while
 `kappa_K^2` rises and both `sinTheta_T` and excess risk decrease.
+
+## Figure 2 Audit: Unified Finite-Sample Risk
+
+`figures/exp_unified_risk.pdf` is the independent validation of Theorem 3.15,
+separate from the post-saturation specialization. It fixes `K=64`,
+`r_star=32`, retained rank `r=d=16`, and uses a rank-gap spectrum so that the
+population spectral-tail term is nonzero and the retained gap is positive.
+
+| Panel | Quantity | Theory role |
+| --- | --- | --- |
+| (a) | retained singular values `sigma_r(T_K)` and `sigma_{r+1}(T_K)` | Shows the positive retained gap `Delta_{K,r}`. |
+| (b) | finite risk, raw OLS floor, rank-`r` population floor | Checks the population terms in Theorem 3.15. |
+| (c) | normalized perturbation, calibrated `rho_0.9`, retained gap | Checks the relative perturbation event and gap compatibility. |
+| (d) | retained-rank `sinTheta_T` and Wedin bound | Checks the perturbation-to-subspace step used in the theorem proof. |
+| (e) | excess over `R_K^star(r)` and `L_hat sinTheta_T` | Checks Assumption 3.10 at retained rank `r=16`. |
+| (f) | finite risk and calibrated theorem bound | Checks the assembled Theorem 3.15 bound. |
+
+Current ten-seed readout:
+
+| n | `rho_0.9` | `Delta_{K,r}` | `sinTheta_T` mean | excess over `R_K^star(r)` | finite risk | theorem bound |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 512 | 0.291 | 0.408 | 0.402 | 2.689e-2 | 0.392 | 0.545 |
+| 1024 | 0.206 | 0.408 | 0.287 | 1.281e-2 | 0.378 | 0.440 |
+| 2048 | 0.142 | 0.408 | 0.192 | 6.642e-3 | 0.372 | 0.404 |
+| 4096 | 0.100 | 0.408 | 0.141 | 2.876e-3 | 0.368 | 0.389 |
+| 8192 | 0.072 | 0.408 | 0.096 | 1.531e-3 | 0.367 | 0.381 |
+| 16384 | 0.049 | 0.408 | 0.071 | 1.002e-3 | 0.366 | 0.375 |
+
+The raw OLS floor is about `0.121`, the per-target spectral-tail floor is about
+`0.244`, and the rank-`r` population risk is therefore about `0.365`. The
+empirical finite-window subspace-Lipschitz constant is `L_hat=7.29e-2`. The
+calibrated perturbation event has `9/10` coverage at every sample size and
+remains below the retained relative gap for all displayed settings, so the
+Theorem 3.15 denominator is non-vacuous in this independent experiment.
 
 ## Half-Gap Check
 
@@ -136,24 +178,21 @@ The paper text should therefore describe the simplified rate as non-vacuous on
 the perturbative portion of the plotted window, not uniformly over every
 displayed endpoint.
 
-## Calibrated Constants
+## Calibrated Relative Perturbation and Lipschitz Constants
 
-The concentration constant is calibrated from the proof definition
-
-```text
-epsilon_n = C ||T_K||_op sqrt((effdim(T_K)+log(1/delta))/n).
-```
-
-With `delta=0.1`, the current plotted run uses
+The updated draft uses the relative perturbation event
+`||T_hat_K - T_K||_op <= rho_n(delta) ||T_K||_op`, not a concentration
+constant derived from `effdim(T_K)`. With `delta=0.1`, the current plotted run
+uses
 
 ```text
-C_hat_0.9 = 1.78662
-L_hat     = 0.0070651
+rho_hat_0.9 = 0.0860506
+L_hat       = 0.0070651
 ```
 
-`C_hat_0.9` is the 90% order-statistic calibration of
-`eta_hat_K / sqrt((effdim(T_K)+log(1/delta))/n)`, so it covers exactly 90 of
-the 100 plotted perturbation samples by construction. `L_hat` is the finite
+`rho_hat_0.9` is the 90% order-statistic calibration of
+`eta_hat_K=||T_hat_K-T_K||_op/||T_K||_op`, so it covers exactly 90 of the 100
+plotted relative-perturbation samples by construction. `L_hat` is the finite
 window maximum of `[excess risk]_+ / ||sinTheta_T||_op`; it diagnoses the
 subspace-Lipschitz assumption on this experimental window and should not be
 phrased as a proof of a global constant.
@@ -162,16 +201,19 @@ phrased as a proof of a global constant.
 
 | Theory item | Current validation | Status |
 | --- | --- | --- |
+| Assumptions 2.1--2.3, frozen linear teacher/factorization | Enforced by the synthetic generator and by the closed-form linear estimator; the realistic image experiments are explicitly framed as regularizer diagnostics outside these assumptions. | By construction |
 | RRR/rank truncation | `models/rrr.py`; unit tests cover rank constraints and deterministic behavior. | Covered |
+| Proposition 3.1 and Lemma 3.2, reduction and rank formula | `exp_reduction_diagnostics.pdf` factorizes the population RRR coefficient as `W A`; over 350 settings, the maximum rank mismatch is `0`, the maximum relative coefficient reconstruction error is `4.1e-15`, and the largest factorized-vs-RRR loss gap is `5.7e-14`. | Direct diagnostic |
 | Predictive-rank growth | `exp_k_saturation` shows rank growth and per-target MSE decrease until saturation at `r_star=d=64`. | Covered |
 | Proposition 3.8, heterogeneity identifiability | `exp_heterogeneity` uses measured `lambda_het` as the x-axis and reports per-target plus reference-stack risk and recovered rank. Larger `lambda_het` improves finite-sample identifiability in the plotted sweep. | Covered qualitatively |
-| Lemma A.8, cross-covariance concentration | `exp_concentration_lemmas.pdf` panel (a) plots the empirical cross-covariance perturbation against the old RHS (`C_hat_0.9=2.87`) and the corrected joint-covariance RHS (`C_hat_0.9=0.07`) on the heterogeneity sweep. | Direct LHS/RHS diagnostic |
-| Lemma A.9, whitened raw predictor concentration | `exp_concentration_lemmas.pdf` panel (b) plots `||T_hat_K-T_K||_op` against the old RHS (`C_hat_0.9=1.79`) and the corrected RHS with the extra linear term (`C_hat_0.9=1.73`) on the post-saturation sweep. Panel (c) is a real 8x8 digit finite-data proxy with `C_hat_0.9=1.17` old and `1.02` corrected. | Direct LHS/RHS diagnostic |
-| Corrected concentration stress tests | `exp_concentration_stress.pdf` calibrates constants once on a correlated Gaussian baseline and then tests shuffle, additive-noise, and weak-correlation regimes. The old RHS collapses or stays fixed when marginal sampling noise remains nonzero; the corrected RHS tracks that noise scale. | Validity stress test |
+| Lemma A.4, cross-covariance concentration | `exp_concentration_lemmas.pdf` panel (a) plots the empirical cross-covariance perturbation against the calibrated joint-covariance RHS (`C_hat_0.9=0.07`) on the heterogeneity sweep. | Direct LHS/RHS diagnostic |
+| Relative `T_K` perturbation diagnostics | `exp_concentration_lemmas.pdf` panel (b) plots `||T_hat_K-T_K||_op` against the calibrated square-root-plus-linear diagnostic (`C_hat_0.9=1.73`) on the post-saturation sweep. Panel (c) is a real 8x8 digit finite-data proxy with `C_hat_0.9=1.02`. | Direct LHS/RHS diagnostic |
 | Bottleneck spectral tail | `exp_bottleneck` compares normalized excess risk with population and plug-in spectral-tail ratios. | Covered |
-| Proposition 3.12, post-saturation risk decomposition | `exp_post_saturation` keeps `r_star(K)=d=64`, increases `kappa_K^2`, plots bounded `effdim(T_K)`, and compares empirical risk with calibrated bounds. | Covered |
+| Theorem 3.15, unified finite-sample risk | `exp_unified_risk` uses `r=16<r_star=32`, validates the nonzero spectral tail, checks the retained relative gap against `rho_0.9`, plots Wedin and subspace-Lipschitz diagnostics, and compares finite risk with the assembled calibrated bound. | Covered |
+| Proposition 3.11, post-saturation risk decomposition | `exp_post_saturation` keeps `r_star(K)=d=64`, increases `kappa_K^2`, plots bounded `effdim(T_K)`, and compares empirical risk with calibrated relative-perturbation bounds. | Covered |
 | Post-saturation recovery | `theorem_subspace_error` is computed from top-`d` right singular subspaces of `T_K` and `T_hat_K`. | Covered |
 | Half-gap simplified rate | Valid seed-wise for all plotted `K`. | Covered |
+| Assumption 3.14, gap-compatible relative perturbation | Post-saturation is gap-valid and half-gap-valid in `100/100` runs. Predictive isotropy intentionally sweeps through the perturbative boundary: `169/200` runs are gap-valid and `111/200` are half-gap-valid. | Covered as validity-window diagnostic |
 | Risk-stability bridge | Panel (d) uses one empirical finite-window `L_hat`. | Diagnosed, not globally proven |
 | Excess-risk and total-risk corollaries | Panels (e) and (f) compare empirical left-hand sides with calibrated bounds. | Covered as finite-window diagnostics |
 | Lemma 4.1, predictive-isotropy equivalence | `exp_predictive_isotropy` fixes rank and trace while varying the intrinsic covariance spectrum of `P_K=T_K Z_tilde`, whose nonzero eigenvalues equal those of `H_K`. | Covered at second-moment level |
@@ -179,6 +221,7 @@ phrased as a proof of a global constant.
 | Lemma 4.4, gauge invariance | `exp_gauge_factorization` constructs multiple gauges of the same population `T_K` and measures end-to-end prediction error. | Covered |
 | Theorem 4.5, covariance-isotropy subsumption | The same diagnostic compares encoder covariance anisotropy under identity, orthogonal, and diagonal gauges for Gaussian and Laplace contexts. | Covered |
 | Theorem 4.6 / Corollary 4.7, Gaussian gauge | The diagnostic reports projected standard-normal discrepancy for SVD-aligned, orthogonal, and nonlinear Gaussianizing gauges. | Covered in controlled Gaussian/Laplace setting |
+| Lemma A.8 and Lemma A.9, entropy maximizers | These are proof lemmas, not stochastic assumptions. Their experimental role is indirect: `exp_predictive_isotropy` checks the fixed-trace second-moment target, while the real-image regularizer diagnostics test the projected-Gaussianity objective motivated by the entropy result. | Proof-only, experimentally motivated |
 | Section 3.6.2 predictive Gaussianity regularizer | `exp_regularizer_digits` trains a nonlinear encoder-predictor on real digit halves with Encoder and prediction-side projected-Gaussianity regularizers. | Covered as small-scale real-data diagnostic |
 | Scaled predictive Gaussianity regularizer | `exp_regularizer_mnist_gpu` repeats the left-to-right completion diagnostic with 28x28 MNIST, a convolutional encoder, and a spatial decoder. | Covered as scaled real-image diagnostic |
 

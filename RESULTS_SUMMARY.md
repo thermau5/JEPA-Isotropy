@@ -7,21 +7,26 @@ Gaussianity objective.
 
 ## Claims Under Test
 
-1. Increasing target count `K` increases identifiable predictive structure until
+1. The linear BM-JEPA objective reduces to RRR, with predictor rank
+   `min(r, rank(Sigma_YX))`.
+2. Increasing target count `K` increases identifiable predictive structure until
    saturation.
-2. Stronger target heterogeneity improves finite-sample subspace recovery.
-3. A bottleneck dimension `d` imposes an irreducible approximation floor.
-4. At fixed rank and fixed total predictive signal energy, predictive
+3. Stronger target heterogeneity improves finite-sample subspace recovery.
+4. A bottleneck dimension `d` imposes an irreducible approximation floor.
+5. The unified finite-sample risk bound has a nonzero population tail and a
+   non-vacuous retained-gap finite-sample term in the same experiment.
+6. At fixed rank and fixed total predictive signal energy, predictive
    isotropy of `H_K = T_K^T T_K` improves finite-sample subspace recovery.
 
 ## How To Run
 
 ```bash
 python -m experiments.exp_k_saturation
+python -m experiments.exp_reduction_diagnostics
 python -m experiments.exp_heterogeneity
 python -m experiments.exp_bottleneck
+python -m experiments.exp_unified_risk
 python -m experiments.exp_post_saturation
-python -m experiments.exp_concentration_stress
 python -m experiments.exp_predictive_isotropy
 python -m experiments.exp_gauge_factorization
 python -m experiments.exp_regularizer_digits
@@ -32,10 +37,10 @@ python -m plots.plot_regularizer_digits_samples
 ```
 
 The per-experiment CSV files are written to `results/`, and the paper figures
-are written to `figures/`. To reproduce the synthetic suite, the gauge
-diagnostic, the $8\times8$ regularizer diagnostic, and the combined
-`results/results.csv`, run `python -m experiments.run_all`. The MNIST MLP and
-GPU CNN diagnostics are run separately with the commands listed above.
+are written to `figures/`. To reproduce the synthetic suite, reduction
+diagnostic, gauge diagnostic, the $8\times8$ regularizer diagnostic, and the
+combined `results/results.csv`, run `python -m experiments.run_all`. The MNIST
+MLP and GPU CNN diagnostics are run separately with the commands listed above.
 
 Plot convention: solid curves are finite-sample estimates averaged over seeds;
 dashed gray curves are population values computed from the known synthetic
@@ -55,6 +60,14 @@ operators.
   `d`, if model rank follows `min(d, r_star)`, and if the normalized empirical
   excess risk over OLS and plug-in spectral-tail ratio track the population
   spectral-tail ratio in the shared Theorem 3.3 panel.
+- `exp_unified_risk.pdf`: independent Theorem 3.15 diagnostic. It fixes
+  `r=d=16<r_star=32`, keeps the spectral-tail floor active, validates the
+  retained relative-gap condition against a calibrated perturbation envelope,
+  and compares finite-sample risk with the assembled theorem bound.
+- `exp_reduction_diagnostics.pdf`: appendix reduction check for Proposition 3.1
+  and Lemma 3.2. It verifies that the closed-form RRR coefficient has rank
+  `min(r, rank(Sigma_YX))` and that an explicit `W A` factorization reproduces
+  the same coefficient and loss up to numerical precision.
 - `exp_post_saturation.pdf`: post-saturation relative-conditioning diagnostic.
   The target stack is already full rank at `K_star=d`; additional targets are allocated
   to weak predictive directions, making
@@ -63,23 +76,19 @@ operators.
   the eigenvalue, conditioning, effective-dimension, risk-stability bound,
   explicit per-target excess-risk, and finite-sample per-target-risk panels.
   Panels (e) and (f) now include calibrated excess-risk and risk-decomposition
-  bounds using `C_hat=1.79` from the proof definition of `epsilon_n` and the
-  empirical finite-window `L_hat`.
+  bounds using the empirical relative-perturbation envelope
+  `rho_hat_0.9=0.0861` and the empirical finite-window `L_hat`.
   The old unwhitened diagnostic is preserved under
   `archive/post_saturation_legacy/`.
-- `exp_concentration_lemmas.pdf`: direct appendix diagnostic for Lemma A.8 and
-  Lemma A.9. Panel (a) plots
-  `||Sigma_hat_YZ-Sigma_YZ||_op` against both the old cross-covariance
-  effective-rank RHS and the corrected joint-covariance concentration bound on
-  the heterogeneity sweep. Panel (b) plots
-  `||T_hat_K-T_K||_op` against both the old square-root RHS and the corrected
-  square-root-plus-linear RHS on the whitened post-saturation sweep. Panel (c)
-  repeats the A.9 comparison on real 8x8 digit halves using the full dataset as
+- `exp_concentration_lemmas.pdf`: direct appendix diagnostic for the
+  joint-covariance concentration lemma and the `T_K` perturbation scale.
+  Panel (a) plots
+  `||Sigma_hat_YZ-Sigma_YZ||_op` against the calibrated joint-covariance
+  concentration bound on the heterogeneity sweep. Panel (b) plots
+  `||T_hat_K-T_K||_op` against the calibrated concentration bound on the
+  whitened post-saturation sweep. Panel (c)
+  repeats the `T_K` comparison on real 8x8 digit halves using the full dataset as
   the reference operator.
-- `exp_concentration_stress.pdf`: appendix stress test for the corrected
-  concentration scale. It uses shuffled, additive-noise, and weak-correlation
-  Gaussian designs to show where the old cross-covariance RHS collapses or
-  stays fixed while the empirical perturbation remains nonzero.
 - `exp_predictive_isotropy.pdf`: fixed-rank, fixed-trace spectrum ablation for
   the new predictive-isotropy section. It holds `rank(T_K)=d`, `K=d`, and
   `tr(H_K)` fixed while moving only the eigenvalue profile of
@@ -131,21 +140,21 @@ operators.
   `d=r_star=24`,
   so it matches the Section 3.2 predictive-rank setting rather than the
   bottleneck ablation.
-- **Concentration lemmas:** directly diagnosed in a separate appendix figure.
-  For Lemma A.8, panel (a) shows both the old RHS (`C_hat_0.9=2.87`) and the
-  corrected joint-covariance RHS (`C_hat_0.9=0.07`), each covering `270/300`
-  cross-covariance perturbation samples by construction. For Lemma A.9, the
-  whitened post-saturation sweep gives `C_hat_0.9=1.79` for the old RHS and
-  `C_hat_0.9=1.73` for the corrected RHS, each covering `90/100`
-  whitened-operator perturbation samples by construction. The real 8x8 digit
-  proxy gives `C_hat_0.9=1.17` for the old RHS and `C_hat_0.9=1.02` for the
-  corrected RHS, each covering `198/220` subsample perturbation estimates.
-- **Concentration stress tests:** included to show why the old concentration
-  scale is not valid beyond the correlated regimes in the main experiments.
-  With constants calibrated once on a correlated Gaussian baseline, the old RHS
-  is zero in the shuffle test, remains fixed as additive target noise grows,
-  and collapses as the cross-correlation scale goes to zero. The corrected RHS
-  tracks the marginal-variance sampling scale in all three diagnostics.
+- **RRR reduction and rank formula:** directly checked in
+  `exp_reduction_diagnostics`. Across 350 population settings, the maximum
+  rank mismatch for the closed-form RRR coefficient is `0`, the maximum
+  rank mismatch after explicit `W A` factorization is `0`, the largest relative
+  coefficient reconstruction error is `4.1e-15`, and the largest absolute loss
+  gap between the factorized predictor and the RRR predictor is `5.7e-14`.
+- **Concentration and relative-perturbation diagnostics:** directly diagnosed in
+  a separate appendix figure. For Lemma A.4, panel (a) shows the calibrated
+  joint-covariance RHS (`C_hat_0.9=0.07`) covering `270/300`
+  cross-covariance perturbation samples by construction. For the `T_K`
+  perturbation diagnostic, the whitened post-saturation sweep gives
+  `C_hat_0.9=1.73`, covering `90/100` whitened-operator perturbation samples by
+  construction. The real 8x8 digit
+  proxy gives `C_hat_0.9=1.02`, covering `198/220` subsample perturbation
+  estimates.
 - **Bottleneck:** supported. Increasing `d` reduces per-target MSE and also reduces
   the normalized empirical excess risk over OLS, empirical plug-in spectral-tail
   ratio, and population spectral-tail ratio, with all theorem-facing curves
@@ -154,6 +163,18 @@ operators.
   directions. The CSV keeps both raw and normalized tail values; the plot clips
   ratios below `1e-4` to a common visible floor so post-saturation points remain
   visible without creating a misleading log-scale gap.
+- **Unified finite-sample risk:** supported in an independent retained-rank
+  diagnostic, not borrowed from post-saturation. The experiment fixes
+  `K=64`, `r_star=32`, and `r=d=16`, so the raw OLS floor and spectral tail are
+  both active. The raw OLS floor is about `0.121`, the per-target spectral tail
+  is about `0.244`, and the rank-`r` population risk is about `0.365`. The
+  retained relative gap is `0.408`, while calibrated `rho_hat_0.9` decreases
+  from `0.291` at `n=512` to `0.049` at `n=16384`, with `9/10` perturbation
+  coverage at each sample size. The retained-rank subspace error falls from
+  about `0.402` to `0.071`, the excess over the population rank-`r` risk falls
+  from about `2.69e-2` to `1.00e-3`, and finite-sample risk stays below the
+  calibrated Theorem 3.15 bound throughout the sweep. The empirical
+  finite-window subspace-Lipschitz constant is `L_hat=7.29e-2`.
 - **Post-saturation relative conditioning:** supported as a finite-window
   diagnostic. The target stack is full rank from `K_star=d` onward, but starts
   imbalanced. Adding targets to the weakest predictive directions raises
@@ -166,12 +187,16 @@ operators.
   (`oracle_effdim` about `16.30` to `60.65`; empirical about `16.16` to `55.80`),
   the empirical risk-stability ratio stays below about `7.07e-3` across all
   seeds, and the half-gap diagnostic holds in `100/100` deterministic runs. The
-  calibrated concentration diagnostic uses `C_hat=1.79`, covers exactly
-  `90/100` normalized perturbation samples by construction, and yields a
-  conservative subspace-recovery bound that covers all observed `sinTheta_T`
-  values in the plotted window. The same calibrated `C_hat` and empirical
-  `L_hat` give the panel (e) excess-risk bound and panel (f) risk-decomposition
-  bound.
+  calibrated relative-perturbation diagnostic uses `rho_hat_0.9=0.0861` and
+  covers exactly `90/100` normalized perturbation samples by construction. The
+  same calibrated `rho_hat_0.9` and empirical `L_hat` give the panel (e)
+  excess-risk bound and panel (f) risk-decomposition bound.
+- **Gap-compatible relative perturbation:** checked from the normalized
+  perturbation `eta=||T_hat_K-T_K||_op/||T_K||_op` against the relative Wedin
+  gap. The post-saturation sweep is gap-valid and half-gap-valid in `100/100`
+  runs. The predictive-isotropy sweep intentionally includes weak-signal
+  settings near and beyond the perturbative boundary; it is gap-valid in
+  `169/200` runs and half-gap-valid in `111/200` runs.
 - **Predictive isotropy:** supported as a fixed-trace second-moment and
   recovery-bound diagnostic. The experiment fixes `r_star=d=K=24` and holds
   `tr(H_K)=22.59` constant across 20 spectrum conditions. The measured

@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 
 from experiments.common import ROOT, run_from_config
-from experiments.exp_concentration_stress import run as run_concentration_stress
 from experiments.exp_gauge_factorization import run as run_gauge_factorization
+from experiments.exp_reduction_diagnostics import run as run_reduction_diagnostics
 from experiments.exp_regularizer_digits import run as run_regularizer_digits
 
 
@@ -16,6 +16,7 @@ EXPERIMENTS = [
     ("k_saturation", "k_saturation.yaml", "exp_k_saturation.csv"),
     ("heterogeneity", "heterogeneity.yaml", "exp_heterogeneity.csv"),
     ("bottleneck", "bottleneck.yaml", "exp_bottleneck.csv"),
+    ("unified_risk", "unified_risk.yaml", "exp_unified_risk.csv"),
     ("post_saturation", "post_saturation.yaml", "exp_post_saturation.csv"),
     ("predictive_isotropy", "predictive_isotropy.yaml", "exp_predictive_isotropy.csv"),
     ("gauge_factorization", "gauge_factorization.yaml", "exp_gauge_factorization.csv"),
@@ -49,8 +50,7 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     combined.to_csv(output, index=False)
 
-    stress_output = ROOT / "results" / "exp_concentration_stress.csv"
-    run_concentration_stress().to_csv(stress_output, index=False)
+    run_reduction_diagnostics(ROOT / "results" / "exp_reduction_diagnostics.csv")
 
 
 if __name__ == "__main__":

@@ -67,10 +67,25 @@ truncating the singular spectrum. The learned BM-JEPA linear predictor is
 the best rank-constrained linear map induced by the finite training sample.
 Population curves use the population cross-covariance operator under the same
 target stack and bottleneck dimension.
+{\color{blue}\Cref{fig:reduction-diagnostics} gives a direct reduction check for
+\cref{prop:jepa_rrr,lem:rank_Wr}: the population RRR coefficient is explicitly
+factorized as $WA$, its rank matches
+$\min\{r,\rank(\Sigma_{YX})\}$, and the factorized predictor has the same loss
+as the closed-form RRR solution up to numerical precision.}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/exp_reduction_diagnostics.pdf}
+    \caption{\small {\color{blue}Reduction diagnostics. Panel (a) compares the rank of the
+    closed-form RRR coefficient with $\min\{r,\rank(\Sigma_{YX})\}$; dashed
+    curves are the formula. Panels (b,c) show that an explicit $WA$
+    factorization reproduces the RRR coefficient and loss up to roundoff.}}
+    \label{fig:reduction-diagnostics}
+\end{figure}
 
 \paragraph{Metrics.}
 All paper-facing MSE panels report average per-target test mean-squared error,
-matching the normalization of $\mathcal R_K$ in \eqref{eq:per_target_risk}.
+matching the normalization of $\mathcal R_K$ in~\eqref{eq:per_target_risk}.
 The CSV files also retain fixed-reference-stack diagnostics on a common
 reference target stack. These are auxiliary representation probes, not the
 theory-facing risk quantities. In \cref{fig:heterogeneity}, per-target
@@ -87,7 +102,7 @@ In \cref{fig:predictive-isotropy}, panel (d) uses a related reference-stack prob
 after estimating the top-$d$ right singular subspace of the whitened operator
 $\widehat T_K$, we fit a linear predictor from that recovered subspace to a
 fixed flat evaluation target stack. This reference-stack excess MSE is a
-representation diagnostic, not a training objective. It measures whether the
+representation diagnostic. It measures whether the
 recovered predictive subspace captures all latent directions equally well.
 Recovered rank is the effective numerical rank of the learned predictor,
 computed using a relative singular-value threshold of $0.05$ times the leading
@@ -160,6 +175,7 @@ Experiment & $n_{\mathrm{train}}$ & $n_{\mathrm{test}}$ & $D_x$ & $r_\star$ & $K
 $K$ saturation & $1024$ & $8192$ & $160$ & $64$ & sweep & $64$ & $0.12$ \\
 Heterogeneity & $32768$ & $8192$ & $64$ & $24$ & $48$ & $24$ & $0.10$ \\
 Bottleneck & $128$ & $8192$ & $64$ & $24$ & $48$ & sweep & $0.16$ \\
+\textcolor{blue}{Unified risk} & \textcolor{blue}{sweep} & \textcolor{blue}{$8192$} & \textcolor{blue}{$80$} & \textcolor{blue}{$32$} & \textcolor{blue}{$64$} & \textcolor{blue}{$16$} & \textcolor{blue}{$0.25$} \\
 Post-saturation & $16384$ & $8192$ & $160$ & $64$ & sweep & $64$ & $0.25$ \\
 Predictive isotropy & $1024$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 Gauge factorization & $8192$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
@@ -196,6 +212,16 @@ Gauge factorization & $8192$ & $8192$ & $64$ & $24$ & $24$ & $24$ & $0.25$ \\
 
 \begin{figure}[t]
     \centering
+    \includegraphics[width=\linewidth]{figures/exp_unified_risk.pdf}
+    \caption{\small {\color{blue}Unified-risk diagnostic for \cref{thm:unified_risk_decomposition}.
+    The experiment fixes $r=16<r_\star=32$, so the population spectral tail is
+    active. Panels check the retained gap, perturbation event, Wedin recovery,
+    subspace-Lipschitz bridge, and final risk bound.}}
+    \label{fig:unified-risk}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
     \includegraphics[width=\linewidth]{figures/exp_predictive_isotropy.pdf}
     \caption{\small Predictive-isotropy diagnostic. At fixed rank and trace, flatter
     spectra of $H_K=T_K^\top T_K$ improve recovery and reduce
@@ -208,6 +234,26 @@ The CSV schema also records the effective rank of the learned RRR coefficient,
 the finite-sample target value $\min\{d,\widehat{r}_\star(K)\}$ predicted by
 the rank identity, and their difference. This directly checks the rank identity beyond
 the displayed rank of the stacked cross-covariance.
+
+{\color{blue}\Cref{fig:unified-risk} gives a diagnostic for
+\cref{thm:unified_risk_decomposition} separate from the post-saturation
+special case. The target stack has $K=64$, $r_\star=32$, and a controlled
+rank-$r$ spectral gap at $r=d=16$, so the spectral-tail term is
+nonzero while the retained gap is positive. The raw OLS floor is about
+$0.121$, the per-target spectral tail is about $0.244$, and the population
+rank-$r$ risk is therefore about $0.365$. We sweep
+$n_{\mathrm{train}}\in\{512,1024,2048,4096,8192,16384\}$ over ten seeds.
+The retained relative gap is $\Delta_{K,r}=0.408$. The calibrated
+$\widehat\rho_{0.9}$ decreases from $0.291$ at $n=512$ to $0.049$ at
+$n=16384$, with $9/10$ perturbation-event coverage at each sample size, so
+the gap-compatible relative-perturbation condition is non-vacuous throughout
+this window. The empirical subspace-Lipschitz constant is
+$\widehat L=7.29\times10^{-2}$, computed as the maximum of
+$[\widehat{\mathcal R}_K-\mathcal R_K^\star(r)]_+/
+\|\sin\Theta_T(V_{K,r},\widehat V_{K,r})\|_{\mathrm{op}}$ over all plotted
+runs. The finite-sample per-target risk decreases from $0.392$ to $0.366$ and
+stays below the calibrated theorem bound, while approaching the population
+rank-$r$ floor.}
 
 The diagnostic in \cref{fig:post-saturation} tests the post-saturation
 relative-conditioning mechanism. The target stack is full rank from
@@ -265,29 +311,26 @@ deterministic draw of the synthetic data and target stack, and the same
 $\widehat L$ is used across the full plotted window. In the current run this
 gives $\widehat L=7.07\times10^{-3}$.
 
-For the concentration constant used in the proof of
-\cref{prop:post_saturation_risk}, we set
-$\delta=0.1$ and compute
+{\color{blue}For the relative-perturbation statement of
+\cref{prop:post_saturation_risk}, we set $\delta=0.1$ and compute
 \[
-    a_K
-    =
-    \sqrt{\frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}},
-    \qquad
     \widehat{\eta}_K
     =
     \frac{\|\widehat T_K-T_K\|_{\mathrm{op}}}{\|T_K\|_{\mathrm{op}}}.
 \]
-We set $\widehat C_{0.9}$ to the $90$th percentile, over all plotted
-$(K,\mathrm{seed})$ pairs, of $\widehat{\eta}_K/a_K$. This gives
-$\widehat C_{0.9}=1.79$ and covers $90/100$ normalized perturbation samples by
-construction. Panel (e) uses the calibrated bound
+The plotted finite-window envelope is the empirical quantile
+$\widehat\rho_{0.9}$ of $\widehat{\eta}_K$ over the plotted
+$(K,\mathrm{seed})$ pairs. This is a calibrated relative-noise diagnostic. In
+the current run, $\widehat\rho_{0.9}=8.61\times10^{-2}$ and covers $90/100$
+relative-perturbation samples by construction. Panel (e) uses the calibrated
+bound
 \[
-    \frac{2\widehat L\widehat C_{0.9}a_K}{\kappa_K}
+    \frac{2\widehat L\widehat\rho_{0.9}}{\kappa_K}
 \]
-from the excess-risk term in \eqref{eq:risk_decomposition}. Panel (f) adds the
+from the excess-risk term in~\eqref{eq:risk_decomposition}. Panel (f) adds the
 same term to the population OLS risk estimate, matching the risk-decomposition
-bound in \cref{prop:post_saturation_risk}. Here
-$d=r_\star(K)$, so the spectral-tail term is zero up to numerical precision.
+bound in \cref{prop:post_saturation_risk}. Here $d=r_\star(K)$, so the
+spectral-tail term is zero up to numerical precision.}
 
 % NOTE: Post-saturation labels were checked against 3method (3).tex.
 We evaluate the empirical analogue of the half-gap condition stated in
@@ -314,98 +357,50 @@ K & \widehat{\eta}_{K,\mathrm{mean}} & \widehat{\eta}_{K,\max}
 \end{array}
 \]
 
-\paragraph{\textcolor{blue}{Concentration-lemma diagnostics.}}
-{\color{blue}\Cref{fig:concentration-lemmas} directly compares the empirical left-hand
-sides with calibrated right-hand sides for Lemma A.8 and Lemma A.9. For Lemma
-A.8, panel (a) shows both the earlier cross-covariance effective-rank RHS}
-{\color{blue}\[
-    \widehat C_{\mathrm{old}}\|\Sigma_{YZ}\|_{\mathrm{op}}
-    \sqrt{\frac{\operatorname{effdim}(\Sigma_{YZ})+\log(1/\delta)}{n}}
-\]}
-{\color{blue}and the corrected joint-covariance RHS. For the corrected version, let
-$U=(Y^\top,Z^\top)^\top$, $M=\mathbb E[UU^\top]$, and
+\paragraph{\textcolor{blue}{Concentration and perturbation diagnostics.}}
+{\color{blue}\Cref{fig:concentration-lemmas} compares the empirical left-hand sides with
+calibrated right-hand sides for the concentration and relative-perturbation
+statements. Panel (a) targets the cross-covariance perturbation controlled by
+\cref{lem:concentration}. Let $U=(Y^\top,Z^\top)^\top$, $M=\mathbb E[UU^\top]$, and
 $r(M)=\operatorname{tr}(M)/\|M\|_{\mathrm{op}}$. The plotted inequality is}
 {\color{blue}\[
     \|\widehat\Sigma_{YZ}-\Sigma_{YZ}\|_{\mathrm{op}}
     \le
-    \widehat C_{\mathrm{new}}\|M\|_{\mathrm{op}}
+    \widehat C_{0.9}\|M\|_{\mathrm{op}}
     \left(
     \sqrt{\frac{r(M)+\log(1/\delta)}{n}}
     +
     \frac{r(M)+\log(1/\delta)}{n}
     \right),
 \]}
-{\color{blue}evaluated on the heterogeneity sweep. After calibration, the old and corrected
-RHS curves have the same order of magnitude in this synthetic setting, so the
-correction does not change the qualitative A.8 diagnostic. For Lemma A.9, panel
-(b) shows the same comparison with $T_K$ in place of $\Sigma_{YZ}$. The earlier
-RHS is}
+{\color{blue}evaluated on the heterogeneity sweep. Panel (b) gives the analogous
+finite-window perturbation diagnostic with $T_K$ in place of $\Sigma_{YZ}$:}
 {\color{blue}\[
     \|\widehat T_K-T_K\|_{\mathrm{op}}
     \le
-    \widehat C_{\mathrm{old}}\|T_K\|_{\mathrm{op}}
-    \sqrt{\frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}},
-\]}
-{\color{blue}and the corrected RHS adds the linear term:}
-{\color{blue}\[
-    \|\widehat T_K-T_K\|_{\mathrm{op}}
-    \le
-    \widehat C_{\mathrm{new}}\|T_K\|_{\mathrm{op}}
+    \widehat C_{0.9}\|T_K\|_{\mathrm{op}}
     \left(
     \sqrt{\frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}}
     +
     \frac{\operatorname{effdim}(T_K)+\log(1/\delta)}{n}
     \right).
 \]}
-{\color{blue}The two A.9 RHS curves nearly overlap because the linear term is small at the
-post-saturation sample size. Panel (c) repeats the A.9 calculation on the
+{\color{blue}Panel (c) repeats the $T_K$ calculation on the
 real $8\times8$ digit halves. Since the real-data population operator is
 unknown, we use the full digit dataset to define a reference operator
 $T_{\mathrm{ref}}$ and compare subsample estimates $\widehat T_n$ against it.
-This panel is a finite-data proxy for the concentration scale, not a formal
-population validation of the lemma. We use $\delta=0.1$ and set
-$\widehat C_{0.9}$ by the same 90\% order-statistic calibration as above. The
-diagnostic checks the finite-window scale of the inequalities; it is not a
-claim about a distribution-free universal constant.}
+We use $\delta=0.1$ and set
+$\widehat C_{0.9}$ by a 90\% order-statistic calibration.}
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_concentration_lemmas.pdf}
-    \caption{\small {\color{blue}Concentration-lemma diagnostics. Panel (a) plots the
-    empirical A.8 left-hand side with the old cross-covariance RHS and the
-    corrected joint-covariance RHS. Panel (b) plots the whitened-predictor
-    A.9 left-hand side with the old square-root RHS and the corrected
-    square-root-plus-linear RHS. Panel (c) repeats the A.9 comparison on
-    sklearn $8\times8$ digit halves using the full dataset as a reference
-    operator. Solid curves are empirical left-hand sides; dashed curves are
-    calibrated right-hand sides.}}
+    \caption{\small {\color{blue}Concentration and perturbation diagnostics. Panels (a)--(c)
+    compare the empirical cross-covariance perturbation, the $T_K$ perturbation,
+    and the real $8\times8$ digit $T_K$ proxy with their calibrated bounds.
+    Solid curves are empirical left-hand sides; dashed curves are calibrated
+    right-hand sides.}}
     \label{fig:concentration-lemmas}
-\end{figure}
-
-\paragraph{\textcolor{blue}{Concentration stress tests.}}
-{\color{blue}\Cref{fig:concentration-stress} separates empirical tightness from validity of
-the concentration scale. We calibrate constants once on a correlated Gaussian
-baseline with $\rho=1$ and $\sigma=1$, then keep those constants fixed while
-changing the data distribution. In the shuffle test, $Y$ is sampled
-independently of $X$, so $\Sigma_{YX}=0$ and the old RHS collapses to zero even
-though $\|\widehat\Sigma_{YX}-\Sigma_{YX}\|_{\mathrm{op}}$ is nonzero. In the
-additive-noise test, $Y=X+\sigma\epsilon$; the old RHS is nearly constant
-because $\Sigma_{YX}$ does not depend on $\sigma$, while the corrected RHS grows
-with the marginal variance of $Y$. In the weak-correlation test,
-$Y=\rho X+\epsilon$; as $\rho\to0$, the old RHS collapses but the empirical
-fluctuation remains at the independent-sampling scale. These stress tests are
-not used as main evidence for the model claims. They document why the corrected
-joint-covariance scale is the right statement even when the old scale happens
-to be close in the paper-facing regimes.}
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{figures/exp_concentration_stress.pdf}
-    \caption{\small {\color{blue}Concentration stress tests. Constants are calibrated once
-    on a correlated Gaussian baseline and then held fixed. The old RHS fails
-    when cross-covariance signal is decoupled from marginal variance; the
-    corrected RHS tracks the sampling-noise scale.}}
-    \label{fig:concentration-stress}
 \end{figure}
 
 \paragraph{Predictive-isotropy construction.}
@@ -446,7 +441,7 @@ $\|\widehat T_K-T_K\|_{\mathrm{op}}/
 (\sigma_d(T_K)-\|\widehat T_K-T_K\|_{\mathrm{op}})$, clipped at one when the
 denominator is nonpositive. The small-$\kappa_H^2$ settings intentionally enter
 this vacuous-bound regime. These settings mark the transition from
-perturbative recovery to the boundary where weak directions become difficult to
+perturbative recovery to the boundary where weak directions are hard to
 recover. In the current ten-seed run, 16 of the 20 spectrum settings have a
 positive perturbative denominator for every seed, and 10 of 20 satisfy the
 half-gap diagnostic for every seed.
@@ -538,8 +533,8 @@ digits, an MLP encoder, a $16$-dimensional predictor representation, and a
 linear pixel head. The scaled MNIST task uses $28\times28$ images, a
 convolutional encoder, a $128$-dimensional predictor representation, and a
 spatial convolutional decoder. We identify the predictor representation with
-the finite-network analogue of $\widehat P_K^{\mathrm{int}}$ in
-\eqref{eq:predictive_isotropy_regularizer}; the pixel head or decoder is the
+the finite-network analogue of $\widehat P_K^{\mathrm{int}}$
+in~\eqref{eq:predictive_isotropy_regularizer}; the pixel head or decoder is the
 readout used for target prediction.
 
 We compare four objectives: no regularizer, Encoder Gaussianity,
@@ -548,11 +543,10 @@ projected-Gaussianity term combines a Cramer-Wold/Epps-Pulley statistic with a
 covariance-to-identity penalty and is applied either to the encoder embedding or
 to the predictor representation. The combined condition is a control: if the
 prediction-side condition captures the risk-relevant pushforward, adding the
-Encoder auxiliary term should not be required for the main prediction
-effect.
+Encoder auxiliary term should not further improve prediction.
 
 MSE is the mean squared error over right-half target pixels after normalizing
-image intensities to $[0,1]$; it is not a percentage. RMSE is measured on the
+image intensities to $[0,1]$. RMSE is measured on the
 same gray-scale range. For MNIST, we also report foreground MSE over
 right-half pixels with intensity larger than $0.05$, because background pixels
 dominate the raw target-half average. The Gaussianity score is a diagnostic
@@ -596,7 +590,7 @@ each method predicts the right half.
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/exp_regularizer_mnist_gpu.pdf}
-    \caption{\small MNIST CNN regularizer diagnostic. The GPU-scale stress test
+    \caption{\small MNIST CNN regularizer diagnostic. The diagnostic
     reports target-half risk, foreground risk, prediction-side Gaussianity, and
     training time.}
     \label{fig:regularizer-mnist}
@@ -646,7 +640,7 @@ The qualitative digit reconstruction figure is generated separately with
 \[
     \texttt{python -m plots.plot\_regularizer\_digits\_samples}.
 \]
-The GPU-scale MNIST diagnostic can also be run directly with
+The MNIST diagnostic can also be run directly with
 \[
     \texttt{python -m experiments.exp\_regularizer\_mnist\_gpu}.
 \]
@@ -662,7 +656,7 @@ when the population quantity varies across deterministic seeds. Bar charts show
 standard-error caps and seed-level points.
 For the bottleneck spectral-tail-ratio panel, values below $10^{-4}$ are
 visually floored in the log-scale display to keep the super-threshold regime
-legible; this affects only the display, not the CSV values or computations.
+legible; this affects only the display.
 
 % INTERPRETATION: The visual floor prevents near-zero numerical tails from
 % dominating the axis while still showing that the post-bottleneck tail

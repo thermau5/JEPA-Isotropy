@@ -27,6 +27,7 @@ class SyntheticSpec:
     weak_target_strength: float = 0.31622776601683794
     spectrum_decay: float = 1.0
     spectrum_trace: float = 16.0
+    spectrum_gap_rank: int = 8
     seed: int = 0
 
 
@@ -204,6 +205,42 @@ def fixed_trace_spectrum_target_operator(
     return np.vstack(rows)
 
 
+def rank_gap_spectrum_target_operator(
+    K: int,
+    target_dim: int,
+    r_star: int,
+    rng: np.random.Generator,
+    gap_rank: int,
+    tail_relative_energy: float = 0.35,
+    spectrum_trace: float = 16.0,
+) -> np.ndarray:
+    """Full-rank target stack with a controlled retained-rank eigengap."""
+
+    if target_dim != 1:
+        raise ValueError("rank_gap_spectrum target mode requires target_dim=1")
+    if K < r_star:
+        raise ValueError("rank_gap_spectrum target mode requires K >= r_star")
+    if not 1 <= gap_rank < r_star:
+        raise ValueError("spectrum_gap_rank must lie in {1, ..., r_star - 1}")
+    if not 0.0 < tail_relative_energy <= 1.0:
+        raise ValueError("spectrum_decay must be in (0, 1] for rank_gap_spectrum")
+    if spectrum_trace <= 0.0:
+        raise ValueError("spectrum_trace must be positive")
+
+    rotation = orthonormal_matrix(r_star, r_star, rng)
+    eigenvalues = np.ones(r_star)
+    eigenvalues[gap_rank:] = tail_relative_energy
+    eigenvalues *= spectrum_trace / np.sum(eigenvalues)
+
+    assignments = np.arange(K) % r_star
+    counts = np.bincount(assignments, minlength=r_star)
+    rows = [
+        np.sqrt(eigenvalues[idx] / counts[idx]) * rotation[:, idx]
+        for idx in assignments
+    ]
+    return np.vstack(rows)
+
+
 def sample_problem(spec: SyntheticSpec) -> SyntheticProblem:
     """Sample a train/test problem from a known linear-Gaussian model."""
 
@@ -237,6 +274,16 @@ def sample_problem(spec: SyntheticSpec) -> SyntheticProblem:
             spec.r_star,
             rng,
             spectrum_decay=spec.spectrum_decay,
+            spectrum_trace=spec.spectrum_trace,
+        )
+    elif spec.target_mode == "rank_gap_spectrum":
+        full_target_op = rank_gap_spectrum_target_operator(
+            max(spec.K, spec.r_star),
+            spec.target_dim,
+            spec.r_star,
+            rng,
+            gap_rank=spec.spectrum_gap_rank,
+            tail_relative_energy=spec.spectrum_decay,
             spectrum_trace=spec.spectrum_trace,
         )
     else:

@@ -455,23 +455,17 @@ def plot_post_saturation_frame(
     frame["normalized_operator_error"] = (
         frame["operator_error_op"] / frame["oracle_sigma_top"].clip(lower=1e-12)
     )
-    frame["concentration_scale"] = np.sqrt(
-        (frame["oracle_effdim"] + np.log(1.0 / delta)) / frame["n_train"]
-    )
-    empirical_c_bound = empirical_quantile(
-        frame["normalized_operator_error"] / frame["concentration_scale"],
+    empirical_rho_bound = empirical_quantile(
+        frame["normalized_operator_error"],
         1.0 - delta,
     )
-    concentration_coverage = float(
-        np.mean(
-            frame["normalized_operator_error"]
-            <= empirical_c_bound * frame["concentration_scale"]
-        )
+    relative_perturbation_coverage = float(
+        np.mean(frame["normalized_operator_error"] <= empirical_rho_bound)
     )
     empirical_l_bound = frame["per_target_risk_stability_ratio"].max()
     kappa = np.sqrt(frame["oracle_relative_conditioning"].clip(lower=1e-12))
     frame["calibrated_excess_risk_rhs"] = (
-        empirical_l_bound * 2.0 * empirical_c_bound * frame["concentration_scale"] / kappa
+        empirical_l_bound * 2.0 * empirical_rho_bound / kappa
     )
     frame["calibrated_total_risk_rhs"] = (
         frame["oracle_test_mse"] + frame["calibrated_excess_risk_rhs"]
@@ -523,9 +517,9 @@ def plot_post_saturation_frame(
         empirical_l_bound * summary["theorem_subspace_error_sem"].fillna(0.0)
     )
     summary["delta"] = delta
-    summary["calibrated_c"] = empirical_c_bound
+    summary["calibrated_rho"] = empirical_rho_bound
     summary["empirical_l"] = empirical_l_bound
-    summary["concentration_coverage"] = concentration_coverage
+    summary["relative_perturbation_coverage"] = relative_perturbation_coverage
     summary.to_csv(summary_path, index=False)
     fig, axes_grid = plt.subplots(2, 3, figsize=(7.1, 3.3), constrained_layout=True)
     fig.set_constrained_layout_pads(w_pad=0.02, h_pad=0.015, wspace=0.02, hspace=0.028)
@@ -639,7 +633,7 @@ def plot_post_saturation_frame(
         summary,
         "K",
         "calibrated_excess_risk_rhs",
-        label="Bound",
+        label="Excess-risk bound",
         floor=1e-6,
         zorder=1,
     )
@@ -659,7 +653,7 @@ def plot_post_saturation_frame(
         summary,
         "K",
         "calibrated_total_risk_rhs",
-        label="Bound",
+        label="Risk-decomp. bound",
         zorder=1,
     )
     line_with_band(
@@ -766,7 +760,7 @@ def concentration_lemma_summary(
 
 
 def joint_covariance_concentration_scale(frame: pd.DataFrame, delta: float) -> pd.Series:
-    """Corrected Lemma A.8 scale from the joint covariance of (Y, Z)."""
+    """Joint-covariance scale for cross-covariance noise."""
 
     sigma_y2 = frame["sigma_y"] ** 2
     sigma_z2 = frame["sigma_z"] ** 2
@@ -797,8 +791,8 @@ def joint_covariance_concentration_scale(frame: pd.DataFrame, delta: float) -> p
     return joint_op * (np.sqrt(window) + window)
 
 
-def corrected_operator_concentration_scale(frame: pd.DataFrame, delta: float) -> pd.Series:
-    """Corrected concentration scale with the additive linear term."""
+def operator_concentration_scale(frame: pd.DataFrame, delta: float) -> pd.Series:
+    """Operator concentration scale with the additive linear term."""
 
     window = (frame["oracle_effdim"] + np.log(1.0 / delta)) / frame["n_train"]
     return frame["oracle_sigma_top"] * (np.sqrt(window) + window)
@@ -819,7 +813,7 @@ def real_digit_t_concentration_frame(
     sample_sizes: list[int] | None = None,
     seeds: range = range(20),
 ) -> pd.DataFrame:
-    """Empirical real-data proxy for Lemma A.9 on sklearn 8x8 digits."""
+    """Empirical real-data proxy for the relative T_K perturbation scale."""
 
     from sklearn.datasets import load_digits
 
@@ -858,20 +852,13 @@ def real_digit_t_concentration_frame(
 
 
 def plot_concentration_lemmas() -> None:
-    """Direct LHS/RHS diagnostics for Lemmas A.8 and A.9."""
+    """LHS/RHS diagnostics for the cross-covariance and T_K perturbations."""
 
     delta = 0.1
     heterogeneity = pd.read_csv(RESULTS / "exp_heterogeneity.csv")
     post_saturation = pd.read_csv(RESULTS / "exp_post_saturation.csv")
     real_digits = real_digit_t_concentration_frame()
-    het_old_summary, het_old_c, het_old_coverage = concentration_lemma_summary(
-        heterogeneity,
-        group="alpha",
-        x_value="oracle_lambda_het_proxy",
-        lhs_value="cross_cov_error_op",
-        delta=delta,
-    )
-    het_new_summary, het_new_c, het_new_coverage = concentration_lemma_summary(
+    het_summary, het_c, het_coverage = concentration_lemma_summary(
         heterogeneity,
         group="alpha",
         x_value="oracle_lambda_het_proxy",
@@ -879,161 +866,29 @@ def plot_concentration_lemmas() -> None:
         scale=joint_covariance_concentration_scale(heterogeneity, delta),
         delta=delta,
     )
-    post_old_summary, post_old_c, post_old_coverage = concentration_lemma_summary(
+    post_summary, post_c, post_coverage = concentration_lemma_summary(
         post_saturation,
         group="K",
         x_value="K",
         lhs_value="operator_error_op",
+        scale=operator_concentration_scale(post_saturation, delta),
         delta=delta,
     )
-    post_new_summary, post_new_c, post_new_coverage = concentration_lemma_summary(
-        post_saturation,
-        group="K",
-        x_value="K",
-        lhs_value="operator_error_op",
-        scale=corrected_operator_concentration_scale(post_saturation, delta),
-        delta=delta,
-    )
-    real_old_summary, real_old_c, real_old_coverage = concentration_lemma_summary(
+    real_summary, real_c, real_coverage = concentration_lemma_summary(
         real_digits,
         group="n_train",
         x_value="n_train",
         lhs_value="operator_error_op",
-        delta=delta,
-    )
-    real_new_summary, real_new_c, real_new_coverage = concentration_lemma_summary(
-        real_digits,
-        group="n_train",
-        x_value="n_train",
-        lhs_value="operator_error_op",
-        scale=corrected_operator_concentration_scale(real_digits, delta),
+        scale=operator_concentration_scale(real_digits, delta),
         delta=delta,
     )
     fig, axes = make_figure(ncols=3, figsize=(7.1, 2.05))
-    line_with_band(
-        axes[0],
-        het_old_summary,
-        "x",
-        "concentration_lhs",
-        "Empirical LHS",
-        color=GRAY,
-        marker="o",
-        zorder=4,
-    )
-    dashed_theory(
-        axes[0],
-        het_old_summary,
-        "x",
-        "concentration_rhs",
-        label="Old RHS",
-        zorder=2,
-    )
-    dashed_theory(
-        axes[0],
-        het_new_summary,
-        "x",
-        "concentration_rhs",
-        label="Corrected RHS",
-        zorder=3,
-        color=BLUE,
-    )
-    line_with_band(
-        axes[1],
-        post_old_summary,
-        "x",
-        "concentration_lhs",
-        "Empirical LHS",
-        color=GRAY,
-        marker="o",
-        zorder=4,
-    )
-    dashed_theory(
-        axes[1],
-        post_old_summary,
-        "x",
-        "concentration_rhs",
-        label="Old RHS",
-        zorder=2,
-    )
-    dashed_theory(
-        axes[1],
-        post_new_summary,
-        "x",
-        "concentration_rhs",
-        label="Corrected RHS",
-        zorder=3,
-        color=BLUE,
-    )
-    line_with_band(
-        axes[2],
-        real_old_summary,
-        "x",
-        "concentration_lhs",
-        "Empirical LHS",
-        color=GRAY,
-        marker="o",
-        zorder=4,
-    )
-    dashed_theory(
-        axes[2],
-        real_old_summary,
-        "x",
-        "concentration_rhs",
-        label="Old RHS",
-        zorder=2,
-    )
-    dashed_theory(
-        axes[2],
-        real_new_summary,
-        "x",
-        "concentration_rhs",
-        label="Corrected RHS",
-        zorder=3,
-        color=BLUE,
-    )
-    _ = (het_old_c, het_new_c, het_old_coverage, het_new_coverage)
-    _ = (post_old_c, post_new_c, post_old_coverage, post_new_coverage)
-    _ = (real_old_c, real_new_c, real_old_coverage, real_new_coverage)
-    add_axis_legend(axes[0])
-    add_axis_legend(axes[1])
-    add_axis_legend(axes[2])
-    style_axis(
-        axes[0],
-        r"Population $\lambda_{\mathrm{het}}$",
-        "Operator norm",
-        "(a) Lemma A.8",
-    )
-    style_axis(axes[1], "Target count $K$", "Operator norm", "(b) Lemma A.9")
-    style_axis(axes[2], "Subsample size $n$", "Operator norm", "(c) 8x8 proxy")
-    axes[2].set_xscale("log")
-    save_figure(fig, FIGURES / "exp_concentration_lemmas.pdf")
-
-
-def stress_summary(frame: pd.DataFrame, stress: str) -> pd.DataFrame:
-    metrics = ["lhs", "old_rhs", "corrected_rhs"]
-    data = frame[frame["stress"] == stress]
-    summary = data.groupby("x", as_index=False)[metrics].agg(["mean", "sem"])
-    summary.columns = ["x"] + [f"{name}_{stat}" for name, stat in summary.columns[1:]]
-    return summary.sort_values("x")
-
-
-def plot_concentration_stress_tests() -> None:
-    """Stress tests showing when the old concentration scale fails."""
-
-    frame = pd.read_csv(RESULTS / "exp_concentration_stress.csv")
-    fig, axes = make_figure(ncols=3, figsize=(7.1, 2.05))
-    panels = [
-        ("shuffle", "Subsample size $n$", "(a) Shuffle"),
-        ("additive_noise", r"Noise scale $\sigma$", "(b) Additive noise"),
-        ("weak_correlation", r"Correlation scale $\rho$", "(c) Weak correlation"),
-    ]
-    for ax, (stress, xlabel, panel) in zip(axes, panels):
-        summary = stress_summary(frame, stress)
+    for ax, summary in zip(axes, (het_summary, post_summary, real_summary)):
         line_with_band(
             ax,
             summary,
             "x",
-            "lhs",
+            "concentration_lhs",
             "Empirical LHS",
             color=GRAY,
             marker="o",
@@ -1043,25 +898,23 @@ def plot_concentration_stress_tests() -> None:
             ax,
             summary,
             "x",
-            "old_rhs",
-            label="Old RHS",
-            zorder=2,
-        )
-        dashed_theory(
-            ax,
-            summary,
-            "x",
-            "corrected_rhs",
-            label="Corrected RHS",
+            "concentration_rhs",
+            label="Concentration bound",
             zorder=3,
             color=BLUE,
         )
         add_axis_legend(ax)
-        style_axis(ax, xlabel, "Operator norm", panel)
-    axes[0].set_xscale("log")
-    axes[1].set_xscale("log")
-    axes[1].set_yscale("log")
-    save_figure(fig, FIGURES / "exp_concentration_stress.pdf")
+    _ = (het_c, het_coverage, post_c, post_coverage, real_c, real_coverage)
+    style_axis(
+        axes[0],
+        r"Population $\lambda_{\mathrm{het}}$",
+        "Operator norm",
+        "(a) Cross-covariance",
+    )
+    style_axis(axes[1], "Target count $K$", "Operator norm", r"(b) $T_K$ perturbation")
+    style_axis(axes[2], "Subsample size $n$", "Operator norm", r"(c) $8{\times}8$ proxy")
+    axes[2].set_xscale("log")
+    save_figure(fig, FIGURES / "exp_concentration_lemmas.pdf")
 
 
 def compact_scientific(value: float, precision: int = 1) -> str:
@@ -1076,6 +929,93 @@ def compact_scientific(value: float, precision: int = 1) -> str:
 
 def kappa_condition_label(value: float) -> str:
     return rf"$\kappa_H^2={compact_scientific(value)}$"
+
+
+def plot_reduction_diagnostics() -> None:
+    """Appendix diagnostics for Proposition 3.1 and Lemma 3.2."""
+
+    frame = pd.read_csv(RESULTS / "exp_reduction_diagnostics.csv")
+    metrics = [
+        "rank_formula",
+        "coefficient_rank",
+        "factorized_rank",
+        "relative_factorization_error",
+        "factorized_loss_gap",
+        "rrr_ols_gap",
+    ]
+    summary = frame.groupby(["K", "rank_constraint"], as_index=False)[metrics].agg(
+        ["mean", "sem"]
+    )
+    summary.columns = ["K", "rank_constraint"] + [
+        f"{name}_{stat}" for name, stat in summary.columns[2:]
+    ]
+    fig, axes = make_figure(ncols=3, figsize=(7.1, 2.05))
+    rank_values = sorted(summary["rank_constraint"].unique())
+    colors = [BLUE, RED, TEAL, GOLD, GRAY]
+    for rank, color in zip(rank_values, colors):
+        subset = summary[summary["rank_constraint"] == rank]
+        axes[0].plot(
+            subset["K"],
+            subset["coefficient_rank_mean"],
+            marker="o",
+            markersize=EMPIRICAL_MARKER_SIZE,
+            linewidth=EMPIRICAL_LINE_WIDTH,
+            color=color,
+            label=fr"$r={rank}$",
+        )
+        axes[0].plot(
+            subset["K"],
+            subset["rank_formula_mean"],
+            linestyle="--",
+            linewidth=THEORY_LINE_WIDTH,
+            color=color,
+            alpha=0.7,
+            zorder=1,
+        )
+    summary_by_rank = mean_sem(
+        frame,
+        "rank_constraint",
+        ["relative_factorization_error", "factorized_loss_gap", "rrr_ols_gap"],
+    )
+    line_with_band_floor(
+        axes[1],
+        summary_by_rank,
+        "rank_constraint",
+        "relative_factorization_error",
+        "Coefficient error",
+        floor=1e-16,
+        color=BLUE,
+        marker="o",
+    )
+    line_with_band_floor(
+        axes[2],
+        summary_by_rank,
+        "rank_constraint",
+        "factorized_loss_gap",
+        "Factorized - RRR",
+        floor=1e-16,
+        color=BLUE,
+        marker="o",
+    )
+    line_with_band_floor(
+        axes[2],
+        summary_by_rank,
+        "rank_constraint",
+        "rrr_ols_gap",
+        "RRR - OLS",
+        floor=1e-16,
+        color=TEAL,
+        marker="^",
+    )
+    axes[1].set_yscale("log")
+    axes[2].set_yscale("log")
+    add_axis_legend(axes[0])
+    add_axis_legend(axes[1])
+    add_axis_legend(axes[2])
+    style_axis(axes[0], "Target count $K$", "Rank", "(a)")
+    style_axis(axes[1], "Rank constraint $r$", "Relative error", "(b)")
+    style_axis(axes[2], "Rank constraint $r$", "MSE gap", "(c)")
+    save_figure(fig, FIGURES / "exp_reduction_diagnostics.pdf")
 
 
 def plot_predictive_isotropy() -> None:
@@ -1381,14 +1321,231 @@ def plot_bottleneck() -> None:
     save_figure(fig, FIGURES / "exp_bottleneck.pdf")
 
 
+def plot_unified_risk() -> None:
+    frame = pd.read_csv(RESULTS / "exp_unified_risk.csv").copy()
+    delta = 0.1
+    rho_by_n = frame.groupby("n_train")["normalized_operator_error"].apply(
+        lambda values: empirical_quantile(values, 1.0 - delta)
+    )
+    coverage_by_n = {
+        n_train: float(
+            np.mean(group["normalized_operator_error"] <= rho_by_n.loc[n_train])
+        )
+        for n_train, group in frame.groupby("n_train")
+    }
+    frame["rho_hat"] = frame["n_train"].map(rho_by_n)
+    frame["rho_coverage"] = frame["n_train"].map(coverage_by_n)
+    empirical_l_bound = frame["rank_r_risk_stability_ratio"].max()
+    frame["retained_recovery_bound"] = (
+        frame["rho_hat"]
+        / (frame["retained_relative_gap"] - frame["rho_hat"]).clip(lower=1e-12)
+    )
+    frame["rank_r_lipschitz_bound"] = (
+        empirical_l_bound * frame["retained_subspace_error"]
+    )
+    frame["unified_excess_bound"] = (
+        empirical_l_bound * frame["retained_recovery_bound"]
+    )
+    frame["unified_risk_bound"] = (
+        frame["population_rank_r_mse"] + frame["unified_excess_bound"]
+    )
+    metrics = [
+        "test_mse",
+        "oracle_test_mse",
+        "population_tail_per_target",
+        "population_rank_r_mse",
+        "rank_r_excess_mse",
+        "normalized_operator_error",
+        "rho_hat",
+        "sigma_at_bottleneck_rank",
+        "sigma_after_bottleneck_rank",
+        "oracle_sigma_at_bottleneck_rank",
+        "oracle_sigma_after_bottleneck_rank",
+        "retained_relative_gap",
+        "retained_subspace_error",
+        "retained_recovery_bound",
+        "rank_r_lipschitz_bound",
+        "unified_excess_bound",
+        "unified_risk_bound",
+        "rho_coverage",
+    ]
+    summary = mean_sem(frame, "n_train", metrics)
+    summary.to_csv(RESULTS / "unified_risk_calibrated_bounds.csv", index=False)
+
+    fig, axes_grid = plt.subplots(2, 3, figsize=(7.1, 3.3), constrained_layout=True)
+    fig.set_constrained_layout_pads(w_pad=0.02, h_pad=0.015, wspace=0.02, hspace=0.028)
+    axes = list(axes_grid.ravel())
+
+    dashed_theory(
+        axes[0],
+        summary,
+        "n_train",
+        "oracle_sigma_at_bottleneck_rank",
+        label=r"Pop. $\sigma_r$",
+        zorder=1,
+    )
+    dashed_theory(
+        axes[0],
+        summary,
+        "n_train",
+        "oracle_sigma_after_bottleneck_rank",
+        label=r"Pop. $\sigma_{r+1}$",
+        zorder=1,
+    )
+    line_with_band(
+        axes[0],
+        summary,
+        "n_train",
+        "sigma_at_bottleneck_rank",
+        r"Finite $\sigma_r$",
+        color=RED,
+        marker="s",
+        zorder=4,
+    )
+    line_with_band(
+        axes[0],
+        summary,
+        "n_train",
+        "sigma_after_bottleneck_rank",
+        r"Finite $\sigma_{r+1}$",
+        color=BLUE,
+        marker="o",
+        zorder=5,
+    )
+
+    line_with_band(axes[1], summary, "n_train", "test_mse", "Finite sample")
+    dashed_theory(
+        axes[1],
+        summary,
+        "n_train",
+        "population_rank_r_mse",
+        label=r"Population rank-$r$",
+    )
+    dashed_theory(
+        axes[1],
+        summary,
+        "n_train",
+        "oracle_test_mse",
+        label="Raw OLS floor",
+        color=GRAY,
+        linestyle=":",
+        alpha=0.75,
+    )
+
+    line_with_band(
+        axes[2],
+        summary,
+        "n_train",
+        "normalized_operator_error",
+        r"Observed $\hat\eta$",
+        color=BLUE,
+    )
+    axes[2].plot(
+        summary["n_train"],
+        summary["rho_hat_mean"],
+        color=TEAL,
+        linestyle="--",
+        linewidth=THEORY_LINE_WIDTH,
+        label=r"$\hat\rho_{0.9}$",
+    )
+    axes[2].plot(
+        summary["n_train"],
+        summary["retained_relative_gap_mean"],
+        color=THEORY,
+        linestyle="--",
+        linewidth=THEORY_LINE_WIDTH,
+        label=r"Gap $\Delta_{K,r}$",
+    )
+
+    line_with_band(
+        axes[3],
+        summary,
+        "n_train",
+        "retained_subspace_error",
+        r"Observed",
+        color=BLUE,
+    )
+    dashed_theory(
+        axes[3],
+        summary,
+        "n_train",
+        "retained_recovery_bound",
+        label="Wedin bound",
+    )
+
+    line_with_band_floor(
+        axes[4],
+        summary,
+        "n_train",
+        "rank_r_excess_mse",
+        r"Excess over $R_K^\star(r)$",
+        floor=1e-4,
+        color=BLUE,
+        marker="o",
+    )
+    dashed_theory(
+        axes[4],
+        summary,
+        "n_train",
+        "rank_r_lipschitz_bound",
+        label="Lipschitz bound",
+        floor=1e-4,
+    )
+
+    line_with_band(axes[5], summary, "n_train", "test_mse", "Finite sample")
+    dashed_theory(
+        axes[5],
+        summary,
+        "n_train",
+        "unified_risk_bound",
+        label="Theorem bound",
+    )
+    dashed_theory(
+        axes[5],
+        summary,
+        "n_train",
+        "population_rank_r_mse",
+        label=r"Population rank-$r$",
+        color=GRAY,
+        linestyle=":",
+        alpha=0.75,
+    )
+
+    for ax in axes:
+        ax.set_xscale("log", base=2)
+        ticks = [512, 2048, 8192, 16384]
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(["512", "2k", "8k", "16k"])
+    for ax in axes[:3]:
+        ax.tick_params(axis="x", which="major", bottom=True, labelbottom=True)
+    axes[2].set_yscale("log")
+    axes[3].set_yscale("log")
+    axes[4].set_yscale("log")
+    axes[5].set_yscale("log")
+    add_axis_legend(axes[0])
+    add_axis_legend(axes[1])
+    add_axis_legend(axes[2])
+    add_axis_legend(axes[3])
+    add_axis_legend(axes[4])
+    add_axis_legend(axes[5])
+    style_axis(axes[0], "Training samples $n$", "Gap SVs", "(a)")
+    style_axis(axes[1], "Training samples $n$", "Per-target MSE", "(b)")
+    style_axis(axes[2], "Training samples $n$", "Rel. perturbation", "(c)")
+    style_axis(axes[3], "Training samples $n$", "Subspace error", "(d)")
+    style_axis(axes[4], "Training samples $n$", "Excess MSE", "(e)")
+    style_axis(axes[5], "Training samples $n$", "Per-target MSE", "(f)")
+    save_figure(fig, FIGURES / "exp_unified_risk.pdf")
+
+
 def main() -> None:
     configure_matplotlib()
     plot_k_saturation()
     plot_heterogeneity()
     plot_bottleneck()
+    plot_unified_risk()
     plot_post_saturation()
     plot_concentration_lemmas()
-    plot_concentration_stress_tests()
+    plot_reduction_diagnostics()
     plot_predictive_isotropy()
     plot_gauge_factorization()
     plot_regularizer_digits()

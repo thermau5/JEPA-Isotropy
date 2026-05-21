@@ -219,11 +219,24 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
     lambda_at_population_rank = sigma_at_population_rank**2
     bottleneck_rank = min(params["d"], oracle_rank)
     sigma_at_bottleneck_rank = singular_value_at_rank(sigma_values, bottleneck_rank)
+    sigma_after_bottleneck_rank = singular_value_at_rank(
+        sigma_values,
+        bottleneck_rank + 1,
+    )
     oracle_sigma_at_bottleneck_rank = singular_value_at_rank(
         population_cross_values, bottleneck_rank
     )
+    oracle_sigma_after_bottleneck_rank = singular_value_at_rank(
+        population_cross_values, bottleneck_rank + 1
+    )
     lambda_at_bottleneck_rank = sigma_at_bottleneck_rank**2
     oracle_lambda_at_bottleneck_rank = oracle_sigma_at_bottleneck_rank**2
+    retained_gap_abs = max(
+        oracle_sigma_at_bottleneck_rank - oracle_sigma_after_bottleneck_rank,
+        0.0,
+    )
+    retained_relative_gap = retained_gap_abs / max(oracle_sigma_top, 1e-12)
+    normalized_operator_error = operator_error_op / max(oracle_sigma_top, 1e-12)
     relative_conditioning = lambda_at_bottleneck_rank / max(lambda_top, 1e-12)
     oracle_relative_conditioning = oracle_lambda_at_bottleneck_rank / max(
         oracle_lambda_top, 1e-12
@@ -320,6 +333,13 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
             float(np.mean(fixed_y_test**2)),
             1e-12,
         )
+    retained_sub_rank = min(params["d"], oracle_rank, spec.r_star, spec.context_dim)
+    if retained_sub_rank == 0:
+        retained_subspace_error = float("nan")
+    else:
+        retained_estimated = right_subspace(theory_operator_hat, retained_sub_rank)
+        retained_truth = right_subspace(theory_operator_pop, retained_sub_rank)
+        retained_subspace_error = subspace_error(retained_truth, retained_estimated)
     subspace_bound_denominator = oracle_sigma_min - cross_cov_error_op
     if subspace_bound_denominator > 0.0:
         empirical_subspace_bound = cross_cov_error_op / subspace_bound_denominator
@@ -329,8 +349,28 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
         empirical_subspace_bound = float("nan")
         empirical_subspace_bound_clipped = 1.0
         subspace_bound_valid = 0
+    retained_subspace_bound_denominator = retained_gap_abs - operator_error_op
+    if retained_subspace_bound_denominator > 0.0:
+        retained_subspace_bound = operator_error_op / retained_subspace_bound_denominator
+        retained_subspace_bound_clipped = min(1.0, retained_subspace_bound)
+        retained_subspace_bound_valid = 1
+    else:
+        retained_subspace_bound = float("nan")
+        retained_subspace_bound_clipped = 1.0
+        retained_subspace_bound_valid = 0
 
+    pop_spectrum = problem.population_spectrum
+    population_tail_per_target = spectral_tail(pop_spectrum, params["d"]) / max(
+        spec.K * spec.target_dim,
+        1,
+    )
+    population_rank_r_mse = oracle_test_mse + population_tail_per_target
     per_target_excess_mse = rrr_mse - oracle_test_mse
+    rank_r_excess_mse = rrr_mse - population_rank_r_mse
+    rank_r_risk_stability_ratio = max(rank_r_excess_mse, 0.0) / max(
+        retained_subspace_error,
+        1e-12,
+    )
     per_target_risk_stability_ratio = max(per_target_excess_mse, 0.0) / max(
         theorem_subspace_error, 1e-12
     )
@@ -342,7 +382,6 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
         theorem_fixed_eval_mse - theorem_oracle_fixed_eval_mse
     )
 
-    pop_spectrum = problem.population_spectrum
     empirical_tail = empirical_spectral_tail(problem.z_train, problem.y_train, params["d"])
     population_spectral_energy = spectral_tail(pop_spectrum, rank=0)
     empirical_total_energy = empirical_spectral_energy(problem.z_train, problem.y_train)
@@ -371,6 +410,7 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
         "sigma_y": spec.sigma_y,
         "spectrum_decay": spec.spectrum_decay,
         "spectrum_trace": spec.spectrum_trace,
+        "spectrum_gap_rank": spec.spectrum_gap_rank,
         "embedding_decay": embedding_decay,
         "embedding_trace": embedding_trace,
         "subspace_operator": subspace_operator,
@@ -399,6 +439,10 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
         "empirical_subspace_bound": empirical_subspace_bound,
         "empirical_subspace_bound_clipped": empirical_subspace_bound_clipped,
         "subspace_bound_valid": subspace_bound_valid,
+        "retained_subspace_error": retained_subspace_error,
+        "retained_subspace_bound": retained_subspace_bound,
+        "retained_subspace_bound_clipped": retained_subspace_bound_clipped,
+        "retained_subspace_bound_valid": retained_subspace_bound_valid,
         "sigma_min_nonzero": sigma_min,
         "sigma_top": sigma_top,
         "lambda_top": lambda_top,
@@ -413,9 +457,14 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
         "oracle_sigma_at_population_rank": oracle_sigma_min,
         "oracle_lambda_at_population_rank": oracle_lambda,
         "sigma_at_bottleneck_rank": sigma_at_bottleneck_rank,
+        "sigma_after_bottleneck_rank": sigma_after_bottleneck_rank,
         "lambda_at_bottleneck_rank": lambda_at_bottleneck_rank,
         "oracle_sigma_at_bottleneck_rank": oracle_sigma_at_bottleneck_rank,
+        "oracle_sigma_after_bottleneck_rank": oracle_sigma_after_bottleneck_rank,
         "oracle_lambda_at_bottleneck_rank": oracle_lambda_at_bottleneck_rank,
+        "retained_gap_abs": retained_gap_abs,
+        "retained_relative_gap": retained_relative_gap,
+        "normalized_operator_error": normalized_operator_error,
         "relative_conditioning": relative_conditioning,
         "oracle_relative_conditioning": oracle_relative_conditioning,
         "trace_h": trace_h,
@@ -431,6 +480,8 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
         "zz_pop_min_eig": zz_pop_min_eig,
         "zz_pop_condition": zz_pop_condition,
         "spectral_tail_proxy": spectral_tail(pop_spectrum, params["d"]),
+        "population_tail_per_target": population_tail_per_target,
+        "population_rank_r_mse": population_rank_r_mse,
         "empirical_spectral_tail": empirical_tail,
         "population_spectral_energy": population_spectral_energy,
         "empirical_spectral_energy": empirical_total_energy,
@@ -439,6 +490,8 @@ def evaluate_setting(experiment: str, params: dict[str, Any]) -> dict[str, Any]:
         "excess_risk_ratio": excess_risk_ratio,
         "relative_rrr_to_ols": relative_rrr_to_ols,
         "per_target_excess_mse": per_target_excess_mse,
+        "rank_r_excess_mse": rank_r_excess_mse,
+        "rank_r_risk_stability_ratio": rank_r_risk_stability_ratio,
         "per_target_risk_stability_ratio": per_target_risk_stability_ratio,
         "fixed_eval_mse": fixed_eval_mse,
         "fixed_eval_excess_mse": fixed_eval_excess_mse,
